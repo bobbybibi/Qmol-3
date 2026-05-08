@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Q-Mol — Computed Molecular Descriptor Dataset</title>
+<meta name="description" content="Pre-computed molecular descriptors for ML / QSAR / virtual screening. Parquet + CSV. Updated continuously." />
+<style>
+  :root { --bg:#0b1020; --fg:#e7ecf3; --accent:#6cf; --muted:#8a95a8; --card:#121a2e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 48px 24px; }
+  h1 { font-size: 40px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h2 { font-size: 22px; margin: 32px 0 10px; }
+  .lead { color: var(--muted); font-size: 18px; margin: 0 0 24px; }
+  .cta { display:inline-block; background:var(--accent); color:#001; padding:14px 22px; border-radius:10px; font-weight:700; text-decoration:none; margin:6px 8px 6px 0; }
+  .cta.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin:18px 0; }
+  .card { background:var(--card); padding:18px; border-radius:12px; border:1px solid #22314e; }
+  .card h3 { margin:0 0 6px; font-size:16px; color:var(--accent); }
+  .card p { margin:0; color:var(--muted); font-size:14px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #22314e; font-size:14px; }
+  th { color:var(--muted); font-weight:600; }
+  code { background:#1a2440; padding:2px 6px; border-radius:4px; font-size:13px; }
+  footer { color:var(--muted); font-size:13px; margin-top:48px; border-top:1px solid #22314e; padding-top:20px; }
+  form { background:var(--card); padding:18px; border-radius:12px; border:1px solid #22314e; margin-top:14px; }
+  input { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #22314e; background:#0b1020; color:var(--fg); font-size:15px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Q-Mol</h1>
+  <p class="lead">Pre-computed molecular descriptors for ML, QSAR, and virtual screening. Parquet + CSV. Updated continuously from PubChem.</p>
+
+  <a class="cta" href="#buy">Buy full dataset</a>
+  <a class="cta secondary" href="#sample">Download free sample</a>
+  <a class="cta secondary" href="checkout.html">Stripe checkout</a>
+  <a class="cta secondary" href="stats.html">Live stats</a>
+  <a class="cta secondary" href="portal.html">Customer portal</a>
+  <a class="cta secondary" href="qmol-postman.json">Postman collection</a>
+  <a class="cta secondary" href="https://huggingface.co/datasets" target="_blank" rel="noopener">View on Hugging Face</a>
+
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="card"><h3>Descriptors</h3><p>MW, logP, TPSA, HBD, HBA, rotatable bonds, QED, ring counts, ECFP4 hash.</p></div>
+    <div class="card"><h3>Format</h3><p>Parquet (fast) + CSV (universal). Loads in pandas, Polars, DuckDB in one line.</p></div>
+    <div class="card"><h3>License</h3><p>CC BY-NC 4.0 for research. Commercial license available at checkout.</p></div>
+    <div class="card"><h3>Updates</h3><p>New molecules added daily. Re-download anytime from Gumroad.</p></div>
+  </div>
+
+  <h2 id="buy">Pricing</h2>
+  <table>
+    <tr><th>Tier</th><th>Price</th><th>What's included</th></tr>
+    <tr><td>Sample</td><td>Free</td><td>First 100 molecules, CSV</td></tr>
+    <tr><td>Research (CC BY-NC)</td><td>$29</td><td>Full current dataset, all updates</td></tr>
+    <tr><td>Commercial</td><td>$299</td><td>Full dataset + commercial license</td></tr>
+    <tr><td>Enterprise / custom</td><td>Contact</td><td>Custom compute, private API, SLA</td></tr>
+  </table>
+  <p style="margin-top:14px;">
+    <a class="cta" href="https://gumroad.com/l/YOUR-PRODUCT" target="_blank" rel="noopener">Buy on Gumroad</a>
+  </p>
+
+  <h2 id="sample">Free sample + free API key</h2>
+  <p>Drop your email. You'll get: the 100-row CSV, release notes, and a free-tier API key (500 SMILES/month).</p>
+  <form id="signupForm">
+    <input type="email" id="signupEmail" placeholder="you@lab.edu" required />
+    <p style="margin:10px 0 0;"><button class="cta" type="submit">Get free API key</button></p>
+    <pre id="signupResult" style="display:none;background:#0b1020;padding:10px;border-radius:8px;margin-top:10px;overflow:auto;"></pre>
+  </form>
+  <script>
+    const API_BASE = (window.QMOL_API || "https://qmol-api.onrender.com").replace(/\/$/, "");
+    document.getElementById("signupForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("signupEmail").value;
+      const out = document.getElementById("signupResult");
+      out.style.display = "block";
+      out.textContent = "Signing you up...";
+      try {
+        const r = await fetch(API_BASE + "/signup", {
+          method: "POST",
+          headers: {"content-type": "application/json"},
+          body: JSON.stringify({ email })
+        });
+        const j = await r.json();
+        if (!r.ok) { out.textContent = "Error: " + (j.detail || r.statusText); return; }
+        out.textContent =
+          "Your API key (save it):\n  " + j.api_key +
+          "\n\nQuota: " + j.monthly_quota + " SMILES/month (free tier)." +
+          "\n\nTry it:\n" +
+          "  curl -X POST " + API_BASE + "/compute/premium \\\n" +
+          "    -H 'x-api-key: " + j.api_key + "' \\\n" +
+          "    -H 'content-type: application/json' \\\n" +
+          "    -d '{\"smiles\": [\"CCO\"]}'";
+      } catch (err) { out.textContent = "Network error: " + err.message; }
+    });
+  </script>
+
+  <h2>Load in one line</h2>
+  <pre><code>import pandas as pd
+df = pd.read_parquet("qmol_full.parquet")
+print(df.head())</code></pre>
+
+  <footer>
+    Q-Mol &middot; Source structures: PubChem (public domain) &middot; Descriptors computed with RDKit.<br>
+    Questions: <a href="mailto:you@example.com">you@example.com</a>
+  </footer>
+</div>
+</body>
+</html>

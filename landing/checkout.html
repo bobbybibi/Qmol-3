@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Q-Mol — Checkout</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<script src="https://js.stripe.com/v3/"></script>
+<style>
+  body { font: 16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+         background:#0b1020; color:#e7ecf3; margin:0; }
+  .wrap { max-width: 520px; margin: 60px auto; padding: 28px; background:#121a2e;
+          border-radius: 14px; border: 1px solid #22314e; }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  p { color: #8a95a8; }
+  .tier { display:flex; justify-content:space-between; align-items:center;
+          padding:14px 16px; border:1px solid #22314e; border-radius:10px; margin-bottom:10px; cursor:pointer; }
+  .tier.selected { border-color:#6cf; background:#0f1a30; }
+  button { width:100%; padding:14px; background:#6cf; color:#001; border:0;
+           border-radius:10px; font-weight:700; font-size:16px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:wait; }
+  small { color:#8a95a8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Q-Mol — Checkout</h1>
+  <p>Pay once. Receive a signed download link by email. Updates included.</p>
+
+  <div class="tier selected" data-price="price_research">
+    <div><strong>Research</strong><br><small>CC BY-NC 4.0 — academic / non-commercial</small></div>
+    <div>$29</div>
+  </div>
+  <div class="tier" data-price="price_commercial">
+    <div><strong>Commercial</strong><br><small>Per-team license, ML training OK</small></div>
+    <div>$299</div>
+  </div>
+  <div class="tier" data-price="price_redistribution">
+    <div><strong>Redistribution</strong><br><small>Resell / bundle inside your product</small></div>
+    <div>$999</div>
+  </div>
+
+  <p style="margin-top:22px;"><button id="pay">Checkout with Stripe →</button></p>
+  <p><small>Powered by Stripe. Replace the <code>STRIPE_PUBLISHABLE_KEY</code> and
+    <code>CHECKOUT_ENDPOINT</code> placeholders below with your own before going live.</small></p>
+</div>
+
+<script>
+  const STRIPE_PUBLISHABLE_KEY = "pk_live_REPLACE_ME";
+  const CHECKOUT_ENDPOINT = "https://YOUR-SERVERLESS/create-checkout";
+
+  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  let selectedPrice = "price_research";
+
+  document.querySelectorAll(".tier").forEach(el => {
+    el.addEventListener("click", () => {
+      document.querySelectorAll(".tier").forEach(t => t.classList.remove("selected"));
+      el.classList.add("selected");
+      selectedPrice = el.dataset.price;
+    });
+  });
+
+  document.getElementById("pay").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    try {
+      const r = await fetch(CHECKOUT_ENDPOINT, {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({ price_id: selectedPrice }),
+      });
+      const { sessionId } = await r.json();
+      await stripe.redirectToCheckout({ sessionId });
+    } catch (err) {
+      alert("Checkout error: " + err.message);
+      e.target.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

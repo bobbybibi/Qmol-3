@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Q-Mol for Pharma — Custom Cheminformatics Platform</title>
+<style>
+:root{
+  --bg:#0b0f1a; --panel:#121a2b; --ink:#eaf0ff; --ink-dim:#8ea0bf;
+  --accent:#4ef0c3; --accent2:#7a8cff; --warn:#ffb957; --bad:#ff6688;
+  --grid:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 -apple-system,system-ui,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+a{color:var(--accent)}
+.bg-stars{position:fixed;inset:0;z-index:-2;pointer-events:none;
+  background:
+    radial-gradient(1200px 700px at 80% -10%, rgba(122,140,255,.12), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(78,240,195,.12), transparent 60%),
+    var(--bg);}
+.bg-grid{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.35;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size:48px 48px;}
+.parallax{
+  position:fixed;inset:0;z-index:-3;pointer-events:none;
+  background:linear-gradient(120deg,#0b0f1a 60%,#121a2b 100%);
+  animation: parallaxMove 30s linear infinite alternate;
+}
+@keyframes parallaxMove{
+  0%{background-position:0 0,0 0}
+  100%{background-position:100px 100px,200px 200px}
+}
+nav{position:sticky;top:0;z-index:10;backdrop-filter:blur(14px);
+  background:rgba(11,15,26,.6);border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;padding:12px 28px;gap:24px}
+.logo{font-weight:800;letter-spacing:.4px;font-size:18px;display:flex;gap:8px;align-items:center;white-space:nowrap;flex-shrink:0}
+.logo .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 0 20px var(--accent)}
+nav .links{margin-left:auto;display:flex;gap:18px;color:var(--ink-dim);font-size:14px;white-space:nowrap}
+nav .links a{color:var(--ink-dim);text-decoration:none;white-space:nowrap}
+nav .links a:hover{color:var(--ink)}
+.cta{background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#031;padding:8px 14px;border-radius:8px;font-weight:700;white-space:nowrap;flex-shrink:0;
+  text-decoration:none!important;border:0;cursor:pointer}
+@media (max-width:720px){nav .links{display:none}nav{padding:10px 16px;gap:12px}}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+.hero{display:grid;grid-template-columns:1.1fr 1fr;gap:40px;
+  padding:72px 0 40px;align-items:center}
+.hero h1{font-size:54px;line-height:1.05;margin:0 0 18px;letter-spacing:-.5px}
+.hero h1 .grad{background:linear-gradient(120deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lede{font-size:18px;color:var(--ink-dim);margin:0 0 24px;max-width:52ch}
+.hero .chips{display:flex;gap:8px;margin:14px 0 28px;flex-wrap:wrap}
+.chip{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);font-size:12px;color:var(--ink-dim)}
+.chip b{color:var(--ink)}
+.hero-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.ghost{background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:var(--ink);padding:10px 16px;border-radius:8px;cursor:pointer}
+.card{background:linear-gradient(180deg,#141c30,#0f1526);
+  border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;
+  box-shadow:0 30px 80px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.03) inset}
+.demo{position:relative;overflow:hidden}
+.demo .glow{position:absolute;inset:-80px;background:
+  radial-gradient(300px 200px at 20% 0%, rgba(122,140,255,.25), transparent 60%),
+  radial-gradient(260px 180px at 110% 110%, rgba(78,240,195,.2), transparent 60%);
+  pointer-events:none;filter:blur(20px)}
+.demo-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.demo-head h3{margin:0;font-size:16px;letter-spacing:.2px}
+.badge{font-size:11px;color:var(--accent);padding:3px 8px;border-radius:6px;
+  background:rgba(78,240,195,.12);border:1px solid rgba(78,240,195,.25)}
+.mol-canvas{height:240px;border-radius:12px;background:
+  radial-gradient(400px 240px at 30% 30%, rgba(122,140,255,.18), transparent 60%),
+  radial-gradient(400px 240px at 70% 70%, rgba(78,240,195,.18), transparent 60%);
+  #0b1122; position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.mol-canvas svg{position:absolute;inset:0;width:100%;height:100%}
+.mol-legend{position:absolute;left:12px;bottom:10px;font-size:11px;color:var(--ink-dim);
+  font-family:ui-monospace,SFMono-Regular,monospace}
+.projections{
+  margin:40px 0 0 0;display:grid;grid-template-columns:1fr 1fr;gap:32px;
+}
+.proj-card{
+  background:linear-gradient(120deg,#121a2b 80%,#1a2236 100%);
+  border-radius:14px;padding:24px 28px;box-shadow:0 8px 32px #0006;
+  color:var(--ink);font-size:17px;display:flex;flex-direction:column;align-items:flex-start;
+}
+.proj-title{font-size:20px;font-weight:700;margin-bottom:10px;letter-spacing:-.2px}
+.slider-row{display:flex;align-items:center;gap:16px;margin:18px 0 0 0}
+.slider-row label{font-size:15px;color:var(--ink-dim);min-width:120px}
+.slider-row input[type=range]{width:180px}
+.slider-row .val{font-family:ui-monospace,SFMono-Regular,monospace;font-size:16px;color:var(--accent);min-width:60px;text-align:right}
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr;padding:40px 0}
+  .hero h1{font-size:38px}
+  .projections{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="parallax"></div>
+<div class="bg-stars"></div>
+<div class="bg-grid"></div>
+<nav>
+  <div class="logo"><span class="dot"></span>Q-Mol</div>
+  <div class="links">
+    <a href="#features">Features</a>
+    <a href="#projections">Projections</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <a class="cta" href="#contact">Partner with us</a>
+</nav>
+<div class="wrap">
+<div class="hero">
+  <div>
+    <div class="chips">
+      <span class="chip"><b>Custom</b> deployment</span>
+      <span class="chip"><b>47</b> endpoints</span>
+      <span class="chip">SOC 2 <b>in&nbsp;progress</b></span>
+      <span class="chip"><b>1.8M+</b> molecules scored</span>
+      <span class="chip"><b>128k</b> API calls/day</span>
+    </div>
+    <h1>Pharma-grade cheminformatics<br/><span class="grad">platform, delivered</span>.</h1>
+    <p class="lede">Q-Mol is a turnkey, cloud-native cheminformatics engine for molecular design, screening, and retrosynthesis. We build and deliver a fully custom, on-prem or cloud solution—yours to own, extend, and scale. See real-time property emulation below.</p>
+    <div class="hero-actions">
+      <a class="cta" href="#features">Explore features</a>
+    </div>
+  </div>
+  <!-- LIVE DESIGN DEMO -->
+  <div class="card demo" id="try">
+    <div class="glow"></div>
+    <div class="demo-head">
+      <h3>Live property designer</h3>
+      <span class="badge">● interactive</span>
+    </div>
+    <div class="mol-canvas">
+      <svg id="mol" viewBox="0 0 600 240" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="mol-legend" id="legend">mw·logp·hba·hbd</div>
+    </div>
+    <div class="sliders">
+      <div class="slider">
+        <label>Molecular weight <b id="v-mw">380</b></label>
+        <input id="s-mw" type="range" min="100" max="700" value="380" />
+      </div>
+      <div class="slider">
+        <label>LogP <b id="v-logp">3.1</b></label>
+        <input id="s-logp" type="range" min="-2" max="8" step="0.1" value="3.1" />
+      </div>
+      <div class="slider">
+        <label>H-bond donors <b id="v-hbd">2</b></label>
+        <input id="s-hbd" type="range" min="0" max="10" value="2" />
+      </div>
+      <div class="slider">
+        <label>H-bond acceptors <b id="v-hba">5</b></label>
+        <input id="s-hba" type="range" min="0" max="15" value="5" />
+      </div>
+      <div class="slider">
+        <label>Rotatable bonds <b id="v-rot">4</b></label>
+        <input id="s-rot" type="range" min="0" max="20" value="4" />
+      </div>
+      <div class="slider">
+        <label>TPSA <b id="v-tpsa">75</b></label>
+        <input id="s-tpsa" type="range" min="0" max="200" value="75" />
+      </div>
+    </div>
+    <div class="scorebar">
+      <div class="num" id="score">87</div>
+      <div class="lbl"><b>Drug-likeness</b>Lipinski + Veber</div>
+      <div class="verdict v-ok" id="verdict">PASS</div>
+    </div>
+  </div>
+</div>
+<!-- PROJECTIONS SECTION -->
+<section id="projections" class="projections">
+  <div class="proj-card">
+    <div class="proj-title">ROI Projection</div>
+    <div>Adjust the sliders to see your projected return on investment over 3 years.</div>
+    <div class="slider-row"><label>Team Size</label><input id="teamSize" type="range" min="15" max="50" value="28"/><span class="val" id="v-teamSize">28</span></div>
+    <div class="slider-row"><label>Annual Savings ($k)</label><input id="savings" type="range" min="400" max="2000" value="900" step="10"/><span class="val" id="v-savings">900</span></div>
+    <div class="slider-row"><label>Productivity Boost (%)</label><input id="boost" type="range" min="20" max="60" value="35"/><span class="val" id="v-boost">35</span></div>
+    <div style="margin-top:18px;font-size:18px"><b>3-Year ROI:</b> <span id="roi">$1,800,000</span></div>
+  </div>
+  <div class="proj-card">
+    <div class="proj-title">Deployment Timeline</div>
+    <div>Estimate your custom platform's go-live date.</div>
+    <div class="slider-row"><label>Integration Complexity</label><input id="complexity" type="range" min="1" max="5" value="2"/><span class="val" id="v-complexity">2</span></div>
+    <div class="slider-row"><label>Custom Endpoints</label><input id="endpoints" type="range" min="10" max="60" value="30"/><span class="val" id="v-endpoints">30</span></div>
+    <div style="margin-top:18px;font-size:18px"><b>Estimated Go-Live:</b> <span id="timeline">6 months</span></div>
+  </div>
+</section>
+<section id="custom" style="padding:60px 0 0">
+  <h2>How it works</h2>
+  <ol style="color:var(--ink-dim);font-size:16px;max-width:50ch">
+    <li><b>Discovery:</b> We meet with your team to define requirements and integration points.</li>
+    <li><b>Proposal:</b> Fixed-price or milestone-based contract. You own the IP and deployment.</li>
+    <li><b>Build & Deliver:</b> Photon Bounce builds, tests, and delivers your custom Q-Mol instance.</li>
+    <li><b>Support:</b> Optional ongoing support, updates, and feature development.</li>
+  </ol>
+</section>
+<section id="contact" style="padding:40px 0 60px">
+  <h2>Contact</h2>
+  <div style="color:var(--ink-dim);font-size:16px">
+    Photon Bounce<br/>
+    www.photon-bounce.com<br/>
+    <!-- Contact form or phone can be added here -->
+  </div>
+</section>
+<footer style="padding:40px 0 60px;color:var(--ink-dim);font-size:13px;border-top:1px solid rgba(255,255,255,.05);margin-top:40px">
+  © 2026 Q-Mol by Photon Bounce
+<script>
+// --- live molecule + drug-likeness scorer (from main onepager) ---
+const ids = ["mw","logp","hbd","hba","rot","tpsa"];
+const state = {};
+const svg = document.getElementById("mol");
+function rnd(seed){let s=seed|0||1;return()=> (s=(s*9301+49297)%233280,s/233280);}
+function drawMol(){
+  svg.innerHTML = "";
+  const W=600,H=240;
+  const n = Math.max(6, Math.min(36, Math.round(state.mw/20)));
+  const r = rnd(n*1000 + Math.round(state.logp*10) + state.hbd*7 + state.hba*11);
+  const pts = [];
+  const cx=W*0.55, cy=H*0.5, R=Math.min(80, 30+state.mw/12);
+  for(let i=0;i<n;i++){
+    const t = i/n*Math.PI*2;
+    const jitter = (r()-0.5)*20;
+    pts.push({
+      x: cx + Math.cos(t)*(R+jitter) + (r()-0.5)*30,
+      y: cy + Math.sin(t)*(R+jitter)*0.75 + (r()-0.5)*30,
+      kind: i%7===0?"O": i%11===0?"N": i%13===0?"S":"C",
+    });
+  }
+  for(let i=0;i<state.hbd;i++){
+    const base = pts[i % pts.length];
+    pts.push({x: base.x + (r()-0.5)*40, y: base.y + (r()-0.5)*40, kind:"O"});
+  }
+  const edges=[];
+  for(let i=0;i<pts.length;i++) edges.push([i,(i+1)%pts.length]);
+  for(let i=0;i<Math.min(5, Math.floor(state.rot/2));i++){
+    edges.push([Math.floor(r()*pts.length), Math.floor(r()*pts.length)]);
+  }
+  const g = "http://www.w3.org/2000/svg";
+  for(const [a,b] of edges){
+    const l=document.createElementNS(g,"line");
+    l.setAttribute("x1",pts[a].x);l.setAttribute("y1",pts[a].y);
+    l.setAttribute("x2",pts[b].x);l.setAttribute("y2",pts[b].y);
+    l.setAttribute("stroke","rgba(234,240,255,.6)");
+    l.setAttribute("stroke-width","1.5");
+    svg.appendChild(l);
+  }
+  for(const p of pts){
+    const c=document.createElementNS(g,"circle");
+    c.setAttribute("cx",p.x);c.setAttribute("cy",p.y);
+    c.setAttribute("r", p.kind==="C"?4:6);
+    const fill = p.kind==="C"? "#8ea0bf"
+               : p.kind==="O"? "#ff6688"
+               : p.kind==="N"? "#7a8cff"
+               : "#ffb957";
+    c.setAttribute("fill", fill);
+    c.setAttribute("stroke","#0b0f1a");c.setAttribute("stroke-width","1.5");
+    svg.appendChild(c);
+    if(p.kind!=="C"){
+      const t=document.createElementNS(g,"text");
+      t.setAttribute("x",p.x); t.setAttribute("y",p.y-9);
+      t.setAttribute("text-anchor","middle");
+      t.setAttribute("font-size","10");
+      t.setAttribute("font-family","ui-monospace,monospace");
+      t.setAttribute("fill",fill);
+      t.textContent = p.kind;
+      svg.appendChild(t);
+    }
+  }
+  const blob=document.createElementNS(g,"circle");
+  blob.setAttribute("cx",cx); blob.setAttribute("cy",cy);
+  blob.setAttribute("r", 10 + Math.abs(state.logp)*5);
+  blob.setAttribute("fill","url(#f)");
+  const defs=document.createElementNS(g,"defs");
+  defs.innerHTML =
+    `<radialGradient id="f">
+      <stop offset="0%" stop-color="rgba(78,240,195,.5)"/>
+      <stop offset="100%" stop-color="rgba(78,240,195,0)"/>
+    </radialGradient>`;
+  svg.appendChild(defs);
+  svg.insertBefore(blob, svg.firstChild);
+  document.getElementById("legend").textContent =
+    `MW ${state.mw}  ·  logP ${state.logp.toFixed(1)}  ·  HBA ${state.hba}  ·  HBD ${state.hbd}`;
+}
+function score(){
+  const viols = [
+    state.mw > 500,
+    state.logp > 5 || state.logp < -0.4,
+    state.hbd > 5,
+    state.hba > 10,
+    state.tpsa > 140,
+    state.rot > 10,
+  ].filter(Boolean).length;
+  let s = 100 - viols*18;
+  if(state.mw < 150) s -= 10;
+  if(state.mw > 650) s -= 8;
+  s = Math.max(0, Math.min(100, Math.round(s)));
+  const el=document.getElementById("score");
+  el.textContent = s;
+  const v=document.getElementById("verdict");
+  if(s >= 80){v.className="verdict v-ok"; v.textContent="PASS"}
+  else if(s >= 55){v.className="verdict v-warn"; v.textContent="REVIEW"}
+  else {v.className="verdict v-bad"; v.textContent="FAIL"}
+}
+function refreshFromSliders(){
+  for(const id of ids){
+    const el = document.getElementById("s-"+id);
+    const raw = el.value;
+    state[id] = id==="logp" ? parseFloat(raw) : parseInt(raw,10);
+    document.getElementById("v-"+id).textContent =
+      id==="logp" ? state.logp.toFixed(1) : state[id];
+  }
+  drawMol(); score();
+}
+for(const id of ids){
+  document.getElementById("s-"+id).addEventListener("input", refreshFromSliders);
+}
+refreshFromSliders();
+// --- projections logic ---
+function updateProjections(){
+  const teamSize = parseInt(document.getElementById('teamSize').value,10);
+  const savings = parseInt(document.getElementById('savings').value,10);
+  const boost = parseInt(document.getElementById('boost').value,10);
+  const roi = teamSize * savings * (1+boost/100);
+  document.getElementById('v-teamSize').textContent = teamSize;
+  document.getElementById('v-savings').textContent = savings;
+  document.getElementById('v-boost').textContent = boost;
+  document.getElementById('roi').textContent = '$'+roi.toLocaleString();
+  const complexity = parseInt(document.getElementById('complexity').value,10);
+  const endpoints = parseInt(document.getElementById('endpoints').value,10);
+  document.getElementById('v-complexity').textContent = complexity;
+  document.getElementById('v-endpoints').textContent = endpoints;
+  let months = 3 + complexity*2 + Math.floor(endpoints/20);
+  if(months<3) months=3; if(months>18) months=18;
+  document.getElementById('timeline').textContent = months+' months';
+}
+['teamSize','savings','boost','complexity','endpoints'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',updateProjections);
+});
+updateProjections();
+</script>
+</footer>
+</body>
+</html>

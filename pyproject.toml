@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qmol"
+version = "1.0.0"
+description = "Molecular descriptor dataset + CLI (RDKit-based QSAR featurizer)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "CC-BY-NC-4.0" }
+authors = [{ name = "Q-Mol" }]
+dependencies = [
+    "rdkit>=2024.3.1",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyarrow>=15.0",
+    "requests>=2.31",
+    "typer>=0.12",
+    "python-dotenv>=1.0",
+    "huggingface_hub>=0.24",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.110", "uvicorn>=0.27"]
+publish = ["kaggle>=1.6"]
+payments = ["stripe>=9.0"]
+dev = ["pytest>=8.0", "matplotlib>=3.8"]
+
+[project.scripts]
+qmol = "cli:main"
+
+[tool.setuptools]
+py-modules = ["cli", "worker", "api", "config", "build_release",
+              "stripe_checkout", "stripe_webhook"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]

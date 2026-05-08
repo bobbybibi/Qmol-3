@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+data/
+*.parquet
+*.sqlite
+*.db
+.DS_Store
+.vscode/
+hf_cache/

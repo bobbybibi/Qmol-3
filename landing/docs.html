@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Q-Mol API Reference</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.5 -apple-system, system-ui, Segoe UI, Roboto, sans-serif;
+         max-width: 1100px; margin: 0 auto; padding: 24px; }
+  header { border-bottom: 1px solid #8884; margin-bottom: 24px; padding-bottom: 16px; }
+  h1 { margin: 0 0 4px; font-size: 28px; }
+  .sub { color: #888; }
+  nav { position: sticky; top: 0; background: Canvas;
+        padding: 8px 0; border-bottom: 1px solid #8882; margin-bottom: 12px; }
+  nav input { width: 100%; padding: 8px 10px; font: inherit;
+              border: 1px solid #8884; border-radius: 6px; background: Canvas; color: CanvasText;}
+  .route { border: 1px solid #8883; border-radius: 8px; padding: 14px 16px;
+           margin: 10px 0; }
+  .route summary { cursor: pointer; font-weight: 600; }
+  .method { display: inline-block; font-family: ui-monospace,SFMono-Regular,monospace;
+            font-size: 12px; padding: 2px 7px; border-radius: 4px;
+            margin-right: 8px; color: #fff; }
+  .method.get { background: #357; }
+  .method.post { background: #485; }
+  .method.delete { background: #a33; }
+  .method.put { background: #a73; }
+  .path { font-family: ui-monospace,SFMono-Regular,monospace; }
+  .desc { color: #888; font-size: 14px; margin-top: 6px; }
+  pre { background: #8881; padding: 10px; border-radius: 6px; overflow: auto;
+        font-size: 12px; }
+  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px;
+         background: #8881; font-size: 11px; margin-left: 6px; color: #888; }
+  footer { margin-top: 40px; color: #888; font-size: 13px;
+           border-top: 1px solid #8884; padding-top: 16px; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Q-Mol API Reference</h1>
+    <div class="sub">Live spec — <code id="paths-count">…</code> endpoints.
+      Download: <a href="/openapi.json">openapi.json</a> ·
+      Postman: <a href="/qmol-postman.json">collection</a></div>
+  </header>
+
+  <nav>
+    <input id="q" placeholder="Filter endpoints… (e.g. /compute, job, team)" autofocus />
+  </nav>
+
+  <div id="routes">Loading…</div>
+
+  <footer>
+    All endpoints accept <code>x-api-key</code> unless noted. Responses are JSON
+    unless <code>Content-Type</code> says otherwise. Rate limits per key are
+    documented inline.
+  </footer>
+
+<script>
+(async () => {
+  const res = await fetch("/openapi.json");
+  if (!res.ok) { document.getElementById('routes').textContent =
+                 "Could not load openapi.json"; return; }
+  const spec = await res.json();
+  const paths = spec.paths || {};
+  const keys = Object.keys(paths).sort();
+  document.getElementById('paths-count').textContent = keys.length;
+
+  const container = document.getElementById('routes');
+  container.innerHTML = "";
+  for (const p of keys) {
+    for (const [method, op] of Object.entries(paths[p])) {
+      if (!["get","post","put","delete","patch"].includes(method)) continue;
+      const det = document.createElement('details');
+      det.className = 'route';
+      det.dataset.filter = (method + " " + p + " " + (op.summary||"") + " " +
+                           (op.description||"")).toLowerCase();
+      const sum = document.createElement('summary');
+      sum.innerHTML =
+        `<span class="method ${method}">${method.toUpperCase()}</span>` +
+        `<span class="path">${p}</span>` +
+        (op.summary ? `<span class="tag">${op.summary}</span>` : "");
+      det.appendChild(sum);
+      if (op.description)
+        det.insertAdjacentHTML('beforeend',
+          `<div class="desc">${op.description.replace(/</g,'&lt;')}</div>`);
+      if (op.requestBody) {
+        const body = op.requestBody.content?.['application/json']?.schema;
+        if (body) det.insertAdjacentHTML('beforeend',
+          `<pre>${JSON.stringify(body, null, 2)}</pre>`);
+      }
+      container.appendChild(det);
+    }
+  }
+
+  const input = document.getElementById('q');
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    for (const el of container.querySelectorAll('.route')) {
+      el.style.display = (!q || el.dataset.filter.includes(q)) ? "" : "none";
+    }
+  });
+})();
+</script>
+</body>
+</html>

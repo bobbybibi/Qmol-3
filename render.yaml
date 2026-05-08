@@ -1,0 +1,47 @@
+# render.com Blueprint — deploys the Q-Mol worker as a 24/7 background worker.
+# Push this repo to GitHub, then go to https://render.com/select-repo and pick this repo.
+# Render auto-detects render.yaml and creates the worker.
+#
+# Required env vars to set in the Render dashboard:
+#   HF_TOKEN          (your Hugging Face write token)
+#   HF_REPO_ID        (e.g. yourname/qmol)
+#
+# Optional:
+#   KAGGLE_USERNAME, KAGGLE_KEY     (for Kaggle auto-publish)
+#   GUMROAD_ACCESS_TOKEN, GUMROAD_PRODUCT_ID  (for Gumroad auto-upload)
+
+services:
+  - type: worker
+    name: qmol-worker
+    runtime: docker
+    plan: starter        # $7/mo. Use 'free' if available; free workers sleep.
+    autoDeploy: true
+    disk:
+      name: qmol-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_REPO_ID
+        sync: false
+      - key: HF_PRIVATE
+        value: "false"
+      - key: PUBCHEM_START_CID
+        value: "1"
+      - key: PUBLISH_EVERY_N_MOLECULES
+        value: "500"
+      - key: SNAPSHOT_EVERY_HOURS
+        value: "6"
+      - key: MAX_HEAVY_ATOMS
+        value: "60"
+
+  - type: web
+    name: qmol-api
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    dockerCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: QMOL_API_KEYS
+        sync: false

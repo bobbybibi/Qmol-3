@@ -1,0 +1,21 @@
+version: "3.9"
+services:
+  qmol:
+    build: .
+    image: qmol-api:latest
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - qmol-data:/data
+      - ./logs:/app/logs
+      - ./jobs:/app/jobs
+    environment:
+      - QMOL_ADMIN_TOKEN=${QMOL_ADMIN_TOKEN:-change-me}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - MAILGUN_API_KEY=${MAILGUN_API_KEY:-}
+      - MAILGUN_DOMAIN=${MAILGUN_DOMAIN:-}
+
+volumes:
+  qmol-data:

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Q-Mol — Stats</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body { font: 16px/1.55 system-ui,Arial,sans-serif; background:#0b1020;
+         color:#e7ecf3; margin:0; padding:30px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { margin:0 0 16px; }
+  .kpi { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+         gap:12px; margin:18px 0; }
+  .card { background:#121a2e; border:1px solid #22314e; padding:18px;
+          border-radius:12px; }
+  .card .v { font-size:28px; font-weight:700; color:#6cf; }
+  .card .l { color:#8a95a8; font-size:13px; margin-top:4px; }
+  pre { background:#121a2e; padding:14px; border-radius:10px; overflow:auto;
+        border:1px solid #22314e; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Q-Mol — live stats</h1>
+  <p style="color:#8a95a8;">Reads from the public API at <code id="api-url">/</code>. Refreshes every 60s.</p>
+  <div class="kpi">
+    <div class="card"><div class="v" id="rows">—</div><div class="l">rows in dataset</div></div>
+    <div class="card"><div class="v" id="last">—</div><div class="l">last update</div></div>
+    <div class="card"><div class="v" id="status">—</div><div class="l">api status</div></div>
+  </div>
+  <h2>Sample query</h2>
+  <pre><code>curl -X POST https://YOUR-API/compute \
+  -H "content-type: application/json" \
+  -d '{"smiles": ["CCO", "c1ccccc1"]}'</code></pre>
+  <p><a href="index.html" style="color:#6cf;">&larr; back to landing</a></p>
+</div>
+<script>
+const API = new URL("/", window.location.href).toString();
+document.getElementById("api-url").textContent = API;
+async function refresh() {
+  try {
+    const r = await fetch(API, { cache: "no-store" });
+    const j = await r.json();
+    document.getElementById("rows").textContent = (j.public_rows || 0).toLocaleString();
+    document.getElementById("status").textContent = j.status || "unknown";
+    document.getElementById("last").textContent = new Date().toLocaleTimeString();
+  } catch (e) {
+    document.getElementById("status").textContent = "offline";
+  }
+}
+refresh();
+setInterval(refresh, 60000);
+</script>
+</body>
+</html>

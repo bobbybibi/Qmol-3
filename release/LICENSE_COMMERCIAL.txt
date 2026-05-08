@@ -1,0 +1,6 @@
+Q-Mol Commercial License
+========================
+
+Purchase of this product grants the buyer a perpetual, non-transferable license to use the dataset in commercial products (ML training, screening pipelines, internal R&D). Redistribution of the raw dataset is not permitted.
+
+Contact: <your-email@example.com> for enterprise/redistribution terms.

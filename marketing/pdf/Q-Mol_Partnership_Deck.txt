@@ -1,0 +1,58 @@
+Photon Bounce — Q-Mol Partnership Deck
+
+---
+
+# Q-Mol: Next-Gen Cheminformatics SaaS
+
+**www.photon-bounce.com | hi@qmol.dev**
+
+---
+
+## What is Q-Mol?
+- Cloud-native cheminformatics SaaS for molecular design, screening, and retrosynthesis
+- 47 live API endpoints: descriptors, similarity, substructure, scaffolds, retrosynthesis, bulk SDF/CSV/Parquet, dashboards
+- Built by experienced developers (Photon Bounce)
+- Ready for pharma, biotech, and research teams
+
+---
+
+## Why Q-Mol?
+- Zero setup: API-first, instant onboarding
+- Bulk uploads/exports (SDF, CSV, Parquet)
+- Live dashboards, audit logs, scoped API keys
+- 99.99% uptime, SOC 2 in progress
+- Docker/on-prem available (Enterprise)
+
+---
+
+## Partnership Models
+
+### 1. Co-Build (Client-Funded)
+- You fund the build
+- Custom features for your workflow
+- Photon Bounce takes a small equity stake
+- Early access, influence roadmap
+
+### 2. Deploy-First (Photon Bounce-Funded)
+- We build at our cost
+- You pay on deployment (or invest at launch)
+- Higher equity/profit share for Photon Bounce
+- Fastest go-to-market
+
+---
+
+## Who Should Partner?
+- Pharma R&D teams seeking digital acceleration
+- Investors in SaaS, AI/ML, or life sciences
+- Innovation leads at CROs, biotech, chemical suppliers
+
+---
+
+## Contact
+- **Photon Bounce**
+- www.photon-bounce.com
+- hi@qmol.dev
+
+---
+
+*See our live one-pager: www.photon-bounce.com/onepager.html*

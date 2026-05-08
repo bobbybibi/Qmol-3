@@ -1,0 +1,116 @@
+"""Postman/Insomnia collection for the Q-Mol API.
+
+Drop this file into Postman's import dialog. Instantly gives buyers a working
+playground — a big friction reduction for the sale.
+"""
+{
+    "info": {
+        "name": "Q-Mol API",
+        "description": "Molecular descriptor + drug-likeness API. See https://qmol.app",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {"key": "base", "value": "https://qmol-api.onrender.com"},
+        {"key": "api_key", "value": "qmol_YOUR_KEY_HERE"}
+    ],
+    "item": [
+        {
+            "name": "Health",
+            "request": {"method": "GET", "url": "{{base}}/health"}
+        },
+        {
+            "name": "Free signup",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/signup",
+                "header": [{"key": "content-type", "value": "application/json"}],
+                "body": {"mode": "raw", "raw": "{\"email\": \"you@lab.edu\"}"}
+            }
+        },
+        {
+            "name": "Compute (free)",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/compute",
+                "header": [{"key": "content-type", "value": "application/json"}],
+                "body": {"mode": "raw", "raw": "{\"smiles\": [\"CCO\", \"c1ccccc1\"]}"}
+            }
+        },
+        {
+            "name": "Compute (premium)",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/compute/premium",
+                "header": [
+                    {"key": "content-type", "value": "application/json"},
+                    {"key": "x-api-key", "value": "{{api_key}}"}
+                ],
+                "body": {"mode": "raw", "raw": "{\"smiles\": [\"CCO\", \"c1ccccc1\"]}"}
+            }
+        },
+        {
+            "name": "Similarity search",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/similarity",
+                "header": [
+                    {"key": "content-type", "value": "application/json"},
+                    {"key": "x-api-key", "value": "{{api_key}}"}
+                ],
+                "body": {"mode": "raw", "raw": "{\"smiles\": \"CCO\", \"top_k\": 20}"}
+            }
+        },
+        {
+            "name": "Screen drug-likeness",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/screen",
+                "header": [
+                    {"key": "content-type", "value": "application/json"},
+                    {"key": "x-api-key", "value": "{{api_key}}"}
+                ],
+                "body": {"mode": "raw", "raw": "{\"smiles\": [\"CCO\", \"c1ccccc1\", \"Cn1cnc2c1c(=O)n(C)c(=O)n2C\"]}"}
+            }
+        },
+        {
+            "name": "Predict ADMET",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/predict",
+                "header": [
+                    {"key": "content-type", "value": "application/json"},
+                    {"key": "x-api-key", "value": "{{api_key}}"}
+                ],
+                "body": {"mode": "raw", "raw": "{\"smiles\": [\"CCO\", \"Cn1cnc2c1c(=O)n(C)c(=O)n2C\"]}"}
+            }
+        },
+        {
+            "name": "Submit async job",
+            "request": {
+                "method": "POST",
+                "url": "{{base}}/jobs",
+                "header": [
+                    {"key": "content-type", "value": "application/json"},
+                    {"key": "x-api-key", "value": "{{api_key}}"}
+                ],
+                "body": {"mode": "raw", "raw": "{\"smiles\": [\"CCO\", \"CCN\", \"c1ccccc1\"]}"}
+            }
+        },
+        {
+            "name": "Usage & quota",
+            "request": {
+                "method": "GET",
+                "url": "{{base}}/usage",
+                "header": [{"key": "x-api-key", "value": "{{api_key}}"}]
+            }
+        },
+        {
+            "name": "Referral stats",
+            "request": {
+                "method": "GET",
+                "url": "{{base}}/referral",
+                "header": [{"key": "x-api-key", "value": "{{api_key}}"}]
+            }
+        }
+    ]
+}

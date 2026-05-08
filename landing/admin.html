@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Q-Mol Admin</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1020; color: #e8ecff; max-width: 960px; margin: 2em auto; padding: 0 1em; }
+    h1, h2 { color: #7dd3fc; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1em; margin: 1em 0; }
+    .card { background: #131a33; padding: 1em; border-radius: 10px; border: 1px solid #24305e; }
+    .big { font-size: 2em; font-weight: 700; color: #a7f3d0; }
+    .muted { color: #94a3b8; font-size: 0.85em; }
+    input { padding: 8px; width: 260px; background: #0b1020; color: #e8ecff; border: 1px solid #24305e; border-radius: 6px; }
+    button { padding: 8px 14px; background: #7dd3fc; color: #0b1020; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    pre { background: #0b1020; padding: 10px; border-radius: 8px; overflow: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1em; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #24305e; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Q-Mol Admin Dashboard</h1>
+  <p class="muted">Paste your admin token, everything below is live.</p>
+  <p><input id="tok" placeholder="admin token" /> <button onclick="loadAll()">Load</button></p>
+
+  <div class="grid" id="stats"></div>
+
+  <h2>Top users this month</h2>
+  <table id="top"><thead><tr><th>Email</th><th>Tier</th><th>SMILES</th></tr></thead><tbody></tbody></table>
+
+  <h2>Trend (last 30 days)</h2>
+  <pre id="trend">load to populate</pre>
+
+<script>
+const API = (window.QMOL_API || "").replace(/\/$/, "");
+
+async function loadAll() {
+  const tok = document.getElementById("tok").value.trim();
+  if (!tok) { alert("Paste admin token first"); return; }
+  sessionStorage.setItem("qmol_admin_tok", tok);
+  const headers = {"x-admin-token": tok};
+
+  const s = await (await fetch(API + "/admin/stats", {headers})).json();
+  const grid = document.getElementById("stats");
+  grid.innerHTML = "";
+  for (const [k, v] of Object.entries({
+    "Molecules in DB": s.molecules.toLocaleString(),
+    "Active keys": s.active_keys,
+    "Paid keys": s.paid_keys,
+    "SMILES this month": (s.month_smiles || 0).toLocaleString(),
+    "Est. revenue": "$" + (s.est_revenue || 0).toLocaleString(),
+  })) {
+    const d = document.createElement("div");
+    d.className = "card";
+    d.innerHTML = `<div class="muted">${k}</div><div class="big">${v}</div>`;
+    grid.appendChild(d);
+  }
+
+  const top = await (await fetch(API + "/admin/top-users", {headers})).json();
+  const tb = document.querySelector("#top tbody");
+  tb.innerHTML = "";
+  for (const u of top.users) {
+    const row = tb.insertRow();
+    row.insertCell().textContent = u.email;
+    row.insertCell().textContent = u.tier;
+    row.insertCell().textContent = (u.smiles_count || 0).toLocaleString();
+  }
+
+  const h = await (await fetch(API + "/admin/history", {headers})).json();
+  document.getElementById("trend").textContent = JSON.stringify(h.history, null, 2);
+}
+
+// Remember token across reloads
+const saved = sessionStorage.getItem("qmol_admin_tok");
+if (saved) { document.getElementById("tok").value = saved; }
+</script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Q-Mol — Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root { color-scheme: light dark; --accent: #2a7; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.4 -apple-system, system-ui, Segoe UI, Roboto, sans-serif;
+         max-width: 1100px; margin: 0 auto; padding: 24px; }
+  header { display: flex; align-items: center; gap: 16px;
+           border-bottom: 1px solid #8884; padding-bottom: 16px; margin-bottom: 18px; }
+  h1 { margin: 0; font-size: 22px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          gap: 14px; margin: 14px 0; }
+  .card { border: 1px solid #8883; border-radius: 8px; padding: 14px 16px; }
+  .kpi { font-size: 26px; font-weight: 700; }
+  .sub { color: #888; font-size: 12px; }
+  input, button { font: inherit; }
+  input[type=password], input[type=text] {
+    padding: 8px 10px; border: 1px solid #8884; border-radius: 6px;
+    background: Canvas; color: CanvasText; }
+  button { padding: 8px 14px; background: var(--accent); color: #fff;
+           border: 0; border-radius: 6px; cursor: pointer; }
+  button.ghost { background: transparent; color: CanvasText; border: 1px solid #8884; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #8882;
+           font-size: 13px; }
+  th { font-weight: 600; color: #888; }
+  .chart { height: 120px; display: flex; align-items: flex-end; gap: 2px; }
+  .bar { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0;
+         min-height: 2px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .err { color: #c33; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Q-Mol Dashboard</h1>
+  <div class="row" style="margin-left:auto">
+    <input id="key" type="password" placeholder="x-api-key" />
+    <button id="load">Load</button>
+    <button id="rotate" class="ghost" title="Rotate">Rotate key</button>
+  </div>
+</header>
+
+<div id="err" class="err"></div>
+
+<section class="grid">
+  <div class="card"><div class="sub">Monthly quota used</div>
+    <div class="kpi" id="used">—</div>
+    <div class="sub" id="quota">—</div></div>
+  <div class="card"><div class="sub">Tier</div>
+    <div class="kpi" id="tier">—</div>
+    <div class="sub" id="email">—</div></div>
+  <div class="card"><div class="sub">Calls (30d)</div>
+    <div class="kpi" id="calls30">—</div></div>
+  <div class="card"><div class="sub">SMILES processed (30d)</div>
+    <div class="kpi" id="smi30">—</div></div>
+</section>
+
+<section class="card">
+  <strong>Daily activity (30 days)</strong>
+  <div id="chart" class="chart" style="margin-top:10px"></div>
+</section>
+
+<section class="card" style="margin-top:14px">
+  <strong>By endpoint (30 days)</strong>
+  <table id="endpoints"><thead>
+    <tr><th>Endpoint</th><th>Calls</th><th>SMILES</th></tr></thead>
+    <tbody></tbody></table>
+</section>
+
+<section class="card" style="margin-top:14px">
+  <strong>Exports</strong>
+  <div class="row" style="margin-top:8px">
+    <a id="dl-audit" href="#">Download audit.csv</a> ·
+    <a id="dl-invoice" href="#">Download invoice.csv</a>
+  </div>
+</section>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n.toLocaleString();
+
+async function api(path, opts={}) {
+  const key = $('key').value.trim();
+  if (!key) throw new Error("Enter your API key");
+  const res = await fetch(path, {
+    ...opts,
+    headers: { "x-api-key": key, ...(opts.headers||{}) },
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`${res.status}: ${t}`);
+  }
+  const ct = res.headers.get("content-type") || "";
+  return ct.includes("json") ? res.json() : res.text();
+}
+
+async function load() {
+  $('err').textContent = "";
+  try {
+    const k = $('key').value.trim();
+    const [usage, hist] = await Promise.all([
+      api('/usage'),
+      api('/usage/history?days=30'),
+    ]);
+    $('used').textContent = fmt(usage.used ?? 0);
+    $('quota').textContent = `of ${fmt(usage.quota ?? 0)}`;
+    $('tier').textContent = usage.tier || "—";
+    $('email').textContent = usage.email || "";
+    const totalCalls = hist.daily.reduce((a,d) => a + d.calls, 0);
+    const totalSmi = hist.daily.reduce((a,d) => a + d.smiles, 0);
+    $('calls30').textContent = fmt(totalCalls);
+    $('smi30').textContent = fmt(totalSmi);
+
+    const max = Math.max(1, ...hist.daily.map(d => d.calls));
+    const chart = $('chart');
+    chart.innerHTML = "";
+    for (const d of hist.daily) {
+      const b = document.createElement('div');
+      b.className = 'bar';
+      b.style.height = `${(d.calls / max) * 100}%`;
+      b.title = `${d.day}: ${d.calls} calls, ${d.smiles} SMILES`;
+      chart.appendChild(b);
+    }
+
+    const tb = $('endpoints').querySelector('tbody');
+    tb.innerHTML = "";
+    for (const e of hist.by_endpoint) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td><code>${e.endpoint}</code></td>`
+        + `<td>${fmt(e.calls)}</td><td>${fmt(e.smiles)}</td>`;
+      tb.appendChild(tr);
+    }
+
+    $('dl-audit').onclick = async (ev) => {
+      ev.preventDefault();
+      const csv = await api('/audit.csv');
+      download(csv, 'audit.csv');
+    };
+    $('dl-invoice').onclick = async (ev) => {
+      ev.preventDefault();
+      const csv = await api('/invoice.csv');
+      download(csv, 'invoice.csv');
+    };
+  } catch (e) {
+    $('err').textContent = e.message;
+  }
+}
+
+function download(text, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/csv'}));
+  a.download = filename; a.click();
+}
+
+$('load').onclick = load;
+$('rotate').onclick = async () => {
+  if (!confirm("Rotate your API key? The current key will be disabled immediately.")) return;
+  try {
+    const res = await api('/key/rotate', {method: 'POST'});
+    alert("New key: " + res.new_key + "\n\nCopy it now — it won't be shown again.");
+    $('key').value = res.new_key;
+    await load();
+  } catch (e) { $('err').textContent = e.message; }
+};
+
+// Auto-load if ?key=... in URL
+const u = new URL(location.href);
+const pre = u.searchParams.get('key');
+if (pre) { $('key').value = pre; load(); }
+</script>
+</body>
+</html>

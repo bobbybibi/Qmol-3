@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Q-Mol — Customer Portal</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1020; color: #e8ecff; max-width: 900px; margin: 2em auto; padding: 0 1em; }
+    h1, h2 { color: #7dd3fc; }
+    input, textarea { padding: 8px; background: #0b1020; color: #e8ecff; border: 1px solid #24305e; border-radius: 6px; font-family: inherit; }
+    button { padding: 8px 14px; background: #7dd3fc; color: #0b1020; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+    button.secondary { background: #334155; color: #e8ecff; }
+    .card { background: #131a33; padding: 1em 1.2em; border-radius: 10px; border: 1px solid #24305e; margin: 1em 0; }
+    .muted { color: #94a3b8; font-size: 0.85em; }
+    .big { font-size: 1.8em; font-weight: 700; color: #a7f3d0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1em; }
+    pre { background: #0b1020; padding: 10px; border-radius: 8px; overflow: auto; font-size: 0.85em; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <h1>Q-Mol Customer Portal</h1>
+  <p class="muted">Paste your API key, see your quota, share your referral link, submit test calls. Zero-backend UI — just hits the API directly.</p>
+
+  <div class="card">
+    <div class="row">
+      <input id="key" placeholder="qmol_..." style="flex:1;min-width:300px;" />
+      <button onclick="loadAll()">Load</button>
+      <button class="secondary" onclick="logout()">Forget key</button>
+    </div>
+  </div>
+
+  <div id="status"></div>
+
+  <div class="card">
+    <h2>Try an endpoint</h2>
+    <p class="muted">SMILES, one per line:</p>
+    <textarea id="smiles" rows="4" style="width:100%;">CCO
+c1ccccc1
+Cn1cnc2c1c(=O)n(C)c(=O)n2C</textarea>
+    <p class="row">
+      <button onclick="run('/compute/premium')">Compute descriptors</button>
+      <button onclick="run('/screen')">Drug-likeness</button>
+      <button onclick="run('/predict')">ADMET predict</button>
+    </p>
+    <pre id="output" style="max-height:300px;">results appear here</pre>
+  </div>
+
+<script>
+const API = (window.QMOL_API || "").replace(/\/$/, "");
+const keyInput = document.getElementById("key");
+keyInput.value = localStorage.getItem("qmol_key") || "";
+
+async function api(path, opts = {}) {
+  const key = keyInput.value.trim();
+  const r = await fetch(API + path, {
+    ...opts,
+    headers: {"content-type": "application/json", "x-api-key": key, ...(opts.headers||{})}
+  });
+  return {ok: r.ok, status: r.status, body: await r.json().catch(() => ({}))};
+}
+
+async function loadAll() {
+  const key = keyInput.value.trim();
+  if (!key) { alert("Enter your API key"); return; }
+  localStorage.setItem("qmol_key", key);
+
+  const s = document.getElementById("status");
+  s.innerHTML = "<div class='card'>loading...</div>";
+
+  const [usage, ref] = await Promise.all([api("/usage"), api("/referral")]);
+  if (!usage.ok) { s.innerHTML = `<div class="card">Error: ${usage.body.detail || usage.status}</div>`; return; }
+
+  const u = usage.body, rf = ref.body;
+  const pct = Math.min(100, Math.round(100 * u.used_this_month / u.monthly_quota));
+  s.innerHTML = `
+    <div class="card">
+      <h2>This month</h2>
+      <div class="grid">
+        <div><div class="muted">Tier</div><div class="big">${u.tier}</div></div>
+        <div><div class="muted">Used</div><div class="big">${u.used_this_month.toLocaleString()}</div></div>
+        <div><div class="muted">Quota</div><div class="big">${u.monthly_quota.toLocaleString()}</div></div>
+        <div><div class="muted">Consumed</div><div class="big">${pct}%</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Your referral link</h2>
+      <p>Share this link: friends who sign up get a free key, <strong>you</strong> get ${rf.bonus_smiles || 500} bonus SMILES per free signup and 20% of any paid purchase.</p>
+      <pre>${location.origin}${rf.share_url}</pre>
+      <div class="grid">
+        <div><div class="muted">Total referrals</div><div class="big">${rf.total_referrals}</div></div>
+        <div><div class="muted">Paid conversions</div><div class="big">${rf.paid_purchases}</div></div>
+        <div><div class="muted">Earned</div><div class="big">$${rf.earned_usd}</div></div>
+        <div><div class="muted">Bonus SMILES</div><div class="big">${rf.bonus_smiles}</div></div>
+      </div>
+    </div>
+  `;
+}
+
+async function run(path) {
+  const smiles = document.getElementById("smiles").value
+    .split("\n").map(s => s.trim()).filter(Boolean);
+  const out = document.getElementById("output");
+  out.textContent = "running...";
+  const body = path === "/similarity"
+    ? {smiles: smiles[0], top_k: 10}
+    : {smiles};
+  const r = await api(path, {method: "POST", body: JSON.stringify(body)});
+  out.textContent = JSON.stringify(r.body, null, 2);
+  loadAll(); // refresh quota
+}
+
+function logout() {
+  localStorage.removeItem("qmol_key");
+  keyInput.value = "";
+  document.getElementById("status").innerHTML = "";
+}
+
+if (keyInput.value) loadAll();
+</script>
+</body>
+</html>
