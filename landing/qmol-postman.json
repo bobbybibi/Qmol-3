@@ -10,7 +10,7 @@ playground — a big friction reduction for the sale.
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "variable": [
-        {"key": "base", "value": "https://qmol-api.onrender.com"},
+        {"key": "base", "value": "https://qua-22p1.onrender.com"},
         {"key": "api_key", "value": "qmol_YOUR_KEY_HERE"}
     ],
     "item": [
