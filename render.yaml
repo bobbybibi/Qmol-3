@@ -41,6 +41,7 @@ services:
     runtime: docker
     plan: free
     autoDeploy: true
+    healthCheckPath: /health
     dockerCommand: uvicorn api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: QMOL_API_KEYS
