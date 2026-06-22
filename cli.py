@@ -25,6 +25,9 @@ from src import conformers as qconformers
 from src import fingerprints as qfingerprints
 from src import tautomers as qtautomers
 from src import clustering as qclustering
+from src import formula as qformula
+from src import convert as qconvert
+from src import descriptors as qdescriptors
 from src import storage
 import config
 
@@ -173,6 +176,52 @@ def cluster(smiles: List[str],
     for c in res.clusters:
         typer.echo(f"  cluster {c['cluster_id']} (n={c['size']}) "
                    f"centroid={c['centroid']}")
+
+
+@cli.command()
+def formula(smiles: List[str]):
+    """Molecular formula, exact + average mass, and RDBE per molecule."""
+    for smi in smiles:
+        try:
+            f = qformula.compute_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        typer.echo(f"{smi}\t{f.formula}\texact={f.exact_mass:.4f}\t"
+                   f"avg={f.average_mass:.3f}\tRDBE={f.rdbe:g}")
+
+
+@cli.command()
+def convert(smiles: List[str],
+            input_format: str = typer.Option("smiles", "--from",
+                                             help="input format: smiles|inchi")):
+    """Convert to canonical SMILES + InChIKey (tab-separated)."""
+    for v in smiles:
+        try:
+            c = qconvert.convert_one(v, input_format=input_format)
+        except ValueError as e:
+            typer.echo(f"FAIL {v}: {e}")
+            continue
+        typer.echo(f"{c.canonical_smiles}\t{c.inchikey}")
+
+
+@cli.command()
+def descriptors(smiles: List[str],
+                names: str = typer.Option("", "--names",
+                                          help="comma-separated subset")):
+    """Full RDKit 2D descriptor panel, or a --names subset."""
+    sel = [n.strip() for n in names.split(",") if n.strip()] or None
+    for smi in smiles:
+        try:
+            r = qdescriptors.compute_one(smi, names=sel)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        d = r["descriptors"]
+        if sel:
+            typer.echo(f"{smi}  " + "  ".join(f"{k}={d[k]}" for k in sel))
+        else:
+            typer.echo(f"{smi}  n_descriptors={len(d)}  (use --names to filter)")
 
 
 @cli.command()

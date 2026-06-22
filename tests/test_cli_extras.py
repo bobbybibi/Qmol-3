@@ -44,3 +44,28 @@ def test_cli_cluster():
 def test_cli_cluster_all_invalid_exits_nonzero():
     r = runner.invoke(qmol_cli, ["cluster", "nope", "bad"])
     assert r.exit_code == 1
+
+
+def test_cli_formula():
+    r = runner.invoke(qmol_cli, ["formula", "CC(=O)Oc1ccccc1C(=O)O"])
+    assert r.exit_code == 0
+    assert "C9H8O4" in r.output
+    assert "RDBE=6" in r.output
+
+
+def test_cli_convert():
+    r = runner.invoke(qmol_cli, ["convert", "CC(=O)Oc1ccccc1C(=O)O"])
+    assert r.exit_code == 0
+    assert "BSYNRYMUTXBXSQ-UHFFFAOYSA-N" in r.output
+
+
+def test_cli_descriptors_subset():
+    r = runner.invoke(qmol_cli, ["descriptors", "CCO", "--names", "MolWt,TPSA"])
+    assert r.exit_code == 0
+    assert "MolWt=" in r.output and "TPSA=" in r.output
+
+
+def test_cli_descriptors_full_count():
+    r = runner.invoke(qmol_cli, ["descriptors", "CCO"])
+    assert r.exit_code == 0
+    assert "n_descriptors=" in r.output

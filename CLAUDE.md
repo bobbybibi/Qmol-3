@@ -37,11 +37,13 @@ aspirational — the shipping compute path is classical RDKit + optional PySCF H
 | `render.yaml` / `Dockerfile` | Deploy: a Render worker + a Render web service. |
 
 ### Module groups in `src/`
-- **Science:** `compute`, `predict` (ADMET heuristics), `screen` (drug-likeness),
-  `similarity` (Tanimoto search), `simmatrix` (pairwise Tanimoto matrix),
-  `clustering` (Butina), `fingerprints` (ECFP/MACCS/…), `tautomers`,
-  `conformers`, `reactions`, `substructure`, `diversity`, `scaffolds`, `retro`,
-  `standardize`, `sdf_out`, `parquet_out`, `exporters`.
+- **Science:** `compute`, `descriptors` (full RDKit 2D panel), `predict`
+  (ADMET heuristics), `screen` (drug-likeness), `formula` (mass/composition),
+  `convert` (SMILES/InChI/InChIKey), `similarity` (Tanimoto search),
+  `simmatrix` (pairwise Tanimoto matrix), `clustering` (Butina),
+  `fingerprints` (ECFP/MACCS/…), `tautomers`, `conformers`, `reactions`,
+  `substructure`, `diversity`, `scaffolds`, `retro`, `standardize`, `sdf_out`,
+  `parquet_out`, `exporters`.
 - **Billing/accounts:** `keys`, `teams`, `plans`, `coupons`, `invoices`,
   `referrals`, `rotate`, `magic_link`, `scopes`.
 - **Ops:** `ratelimit`, `cache`, `audit`, `status_store`, `metrics`, `prom`,
