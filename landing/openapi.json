@@ -1957,6 +1957,61 @@
         }
       }
     },
+    "/cluster": {
+      "post": {
+        "summary": "Cluster Endpoint",
+        "description": "Butina clustering by ECFP4 Tanimoto distance (N<=2000).\n\n`cutoff` is a DISTANCE threshold (1 - similarity); smaller = tighter\nclusters. Returns clusters largest-first, each with a centroid. Charges 1\nSMILES/input molecule.",
+        "operationId": "cluster_endpoint_cluster_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/download/sdf": {
       "post": {
         "summary": "Download Sdf",
@@ -2586,6 +2641,31 @@
           "file"
         ],
         "title": "Body_upload_compute_upload_compute_post"
+      },
+      "ClusterIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "cutoff": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Cutoff",
+            "default": 0.4
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ClusterIn"
       },
       "ComputeIn": {
         "properties": {

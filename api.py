@@ -29,7 +29,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
-                 simmatrix, tautomers)
+                 simmatrix, tautomers, clustering)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -194,6 +194,11 @@ class SimMatrixIn(BaseModel):
 class TautomerIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=1000)
     max_tautomers: int = Field(100, ge=1, le=1000)
+
+
+class ClusterIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=2000)
+    cutoff: float = Field(0.4, ge=0.0, le=1.0)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -1028,6 +1033,36 @@ def diversity_endpoint(body: DiversityIn,
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/diversity", n)
+    return {**res.to_dict(), "quota_charged": n}
+
+
+# ---------------- Butina clustering ----------------
+
+@app.post("/cluster")
+def cluster_endpoint(body: ClusterIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Butina clustering by ECFP4 Tanimoto distance (N<=2000).
+
+    `cutoff` is a DISTANCE threshold (1 - similarity); smaller = tighter
+    clusters. Returns clusters largest-first, each with a centroid. Charges 1
+    SMILES/input molecule.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"cluster:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = clustering.cluster(body.smiles, cutoff=body.cutoff)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/cluster", n)
     return {**res.to_dict(), "quota_charged": n}
 
 
