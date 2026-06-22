@@ -454,16 +454,6 @@ def predict_endpoint(body: PredictIn, x_api_key: str | None = Header(default=Non
     return {"results": results, "quota_charged": charge}
 
 
-    if not info:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return {
-        "tier": info.tier,
-        "used_this_month": keysdb.month_usage(x_api_key),
-        "monthly_quota": info.monthly_quota,
-        "active": info.active,
-    }
-
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
