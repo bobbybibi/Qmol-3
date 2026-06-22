@@ -11,10 +11,12 @@ Q-Mol ships two things on one RDKit compute core (`src/compute.py`):
 - **Dataset factory** (`worker.py`) — the 24/7 ingest → compute → store →
   publish loop described below.
 - **Molecular-informatics API + CLI** (`api.py`, `cli.py`) — a key-gated
-  FastAPI service (~30 endpoints: descriptors, drug-likeness screening, ADMET
-  heuristics, Tanimoto similarity, conformers, reaction enumeration, scaffolds,
-  diversity, async jobs, …) plus a local Typer CLI. Run `uvicorn api:app` and
-  open `/docs`, or `qmol --help`. See **`CLAUDE.md`** for an architecture tour.
+  FastAPI service (~50 endpoints: descriptors, full QSAR panel, fingerprints,
+  similarity + pairwise matrix, Butina clustering, drug-likeness screening,
+  ADMET heuristics, formula/exact-mass, identifier conversion, tautomers,
+  conformers, reactions, scaffolds, diversity, async jobs, …) plus a local Typer
+  CLI. Run `uvicorn api:app` and open `/docs`, or `qmol --help`.
+  **Quickstart: [`docs/API.md`](docs/API.md)** · architecture tour: **`CLAUDE.md`**.
 
 ## What it does
 
