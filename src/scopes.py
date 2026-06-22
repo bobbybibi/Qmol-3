@@ -34,7 +34,7 @@ def _conn() -> sqlite3.Connection:
 # Special value "*" = unrestricted.
 KNOWN_SCOPES = {
     "*", "compute", "compute:premium", "similarity", "screen", "predict",
-    "conformers", "reactions", "standardize", "scaffolds", "upload",
+    "conformers", "reactions", "standardize", "tautomers", "scaffolds", "upload",
     "substructure", "diversity", "fingerprints", "download", "export", "jobs", "usage",
     "audit", "invoice", "key:rotate", "teams", "webhooks", "referrals",
 }

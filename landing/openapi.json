@@ -1010,6 +1010,61 @@
         }
       }
     },
+    "/tautomers": {
+      "post": {
+        "summary": "Tautomers Endpoint",
+        "description": "Enumerate a molecule's plausible tautomers + RDKit's canonical form.\n\nThe complement of /standardize (which collapses to one form). Charges 2\nSMILES/molecule.",
+        "operationId": "tautomers_endpoint_tautomers_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TautomerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/subscribe": {
       "post": {
         "summary": "Webhook Subscribe",
@@ -2992,6 +3047,31 @@
           "smiles"
         ],
         "title": "SubstructureIn"
+      },
+      "TautomerIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "max_tautomers": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Max Tautomers",
+            "default": 100
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "TautomerIn"
       },
       "TeamCreateIn": {
         "properties": {
