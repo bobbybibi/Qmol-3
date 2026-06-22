@@ -1192,6 +1192,61 @@
         }
       }
     },
+    "/convert": {
+      "post": {
+        "summary": "Convert Endpoint",
+        "description": "Convert structures to canonical SMILES + InChI + InChIKey (+ optional\nMolBlock). `input_format` is smiles (default) or inchi; with input_format\n'inchi' the `smiles` field carries InChI strings. Charges 1 SMILES/molecule.",
+        "operationId": "convert_endpoint_convert_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/subscribe": {
       "post": {
         "summary": "Webhook Subscribe",
@@ -2831,6 +2886,35 @@
           "smiles"
         ],
         "title": "ConformerIn"
+      },
+      "ConvertIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "input_format": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Input Format",
+            "default": "smiles"
+          },
+          "with_molblock": {
+            "type": "boolean",
+            "title": "With Molblock",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ConvertIn"
       },
       "CouponCheckIn": {
         "properties": {

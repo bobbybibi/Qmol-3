@@ -29,7 +29,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
-                 simmatrix, tautomers, clustering, formula, descriptors)
+                 simmatrix, tautomers, clustering, formula, descriptors, convert)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -208,6 +208,12 @@ class FormulaIn(BaseModel):
 class DescriptorsIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=5000)
     names: List[str] | None = Field(default=None, max_length=300)
+
+
+class ConvertIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
+    input_format: str = Field("smiles", min_length=1)
+    with_molblock: bool = False
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -785,6 +791,36 @@ def tautomers_endpoint(body: TautomerIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/tautomers", charge)
     return {"results": results, "quota_charged": charge}
+
+
+# ---------------- identifier / format conversion ----------------
+
+@app.post("/convert")
+def convert_endpoint(body: ConvertIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Convert structures to canonical SMILES + InChI + InChIKey (+ optional
+    MolBlock). `input_format` is smiles (default) or inchi; with input_format
+    'inchi' the `smiles` field carries InChI strings. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"convert:{x_api_key}", limit=120, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = convert.convert_batch(
+            body.smiles, input_format=body.input_format,
+            with_molblock=body.with_molblock,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/convert", n)
+    return {"results": results, "quota_charged": n}
 
 
 # ---------------- outbound webhooks ----------------
