@@ -29,7 +29,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
-                 simmatrix, tautomers, clustering, formula)
+                 simmatrix, tautomers, clustering, formula, descriptors)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -203,6 +203,11 @@ class ClusterIn(BaseModel):
 
 class FormulaIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=10_000)
+
+
+class DescriptorsIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=5000)
+    names: List[str] | None = Field(default=None, max_length=300)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -558,6 +563,38 @@ def formula_endpoint(body: FormulaIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/formula", n)
     return {"results": results, "quota_charged": n}
+
+
+# ---------------- full QSAR descriptor panel ----------------
+
+@app.get("/descriptors/names")
+def descriptor_names():
+    """Public: list every available RDKit 2D descriptor name (no auth)."""
+    return {"n": len(descriptors.ALL_NAMES), "names": list(descriptors.ALL_NAMES)}
+
+
+@app.post("/descriptors")
+def descriptors_endpoint(body: DescriptorsIn,
+                         x_api_key: str | None = Header(default=None)):
+    """Full RDKit 2D descriptor panel (~200 features) per molecule, or just the
+    requested `names` subset. NaN/inf come back as null. Charges 2 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"desc:{x_api_key}", limit=60, window=60.0)
+    charge = 2 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = descriptors.compute_batch(body.smiles, names=body.names)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/descriptors", charge)
+    return {"n": len(body.smiles), "results": results, "quota_charged": charge}
 
 
 # ---------------- async jobs ----------------

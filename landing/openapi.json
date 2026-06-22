@@ -678,6 +678,78 @@
         }
       }
     },
+    "/descriptors/names": {
+      "get": {
+        "summary": "Descriptor Names",
+        "description": "Public: list every available RDKit 2D descriptor name (no auth).",
+        "operationId": "descriptor_names_descriptors_names_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/descriptors": {
+      "post": {
+        "summary": "Descriptors Endpoint",
+        "description": "Full RDKit 2D descriptor panel (~200 features) per molecule, or just the\nrequested `names` subset. NaN/inf come back as null. Charges 2 SMILES/molecule.",
+        "operationId": "descriptors_endpoint_descriptors_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescriptorsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jobs": {
       "post": {
         "summary": "Job Submit",
@@ -2777,6 +2849,39 @@
           "tier"
         ],
         "title": "CouponCheckIn"
+      },
+      "DescriptorsIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "DescriptorsIn"
       },
       "DiversityIn": {
         "properties": {
