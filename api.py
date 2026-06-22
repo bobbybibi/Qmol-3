@@ -29,7 +29,8 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
-                 simmatrix, tautomers, clustering, formula, descriptors, convert)
+                 simmatrix, tautomers, clustering, formula, descriptors, convert,
+                 mcs)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -214,6 +215,13 @@ class ConvertIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=10_000)
     input_format: str = Field("smiles", min_length=1)
     with_molblock: bool = False
+
+
+class MCSIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=2, max_length=1000)
+    complete_rings_only: bool = False
+    ring_matches_ring_only: bool = False
+    timeout: int = Field(10, ge=1, le=60)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -1112,6 +1120,37 @@ def substructure_endpoint(body: SubstructureIn,
                  for h in hits],
         "quota_charged": n,
     }
+
+
+# ---------------- maximum common substructure ----------------
+
+@app.post("/mcs")
+def mcs_endpoint(body: MCSIn,
+                 x_api_key: str | None = Header(default=None)):
+    """Maximum Common Substructure shared by all input molecules (SMARTS +
+    SMILES + atom/bond counts). Charges 1 SMILES/input molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"mcs:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = mcs.find(
+            body.smiles,
+            complete_rings_only=body.complete_rings_only,
+            ring_matches_ring_only=body.ring_matches_ring_only,
+            timeout=body.timeout,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/mcs", n)
+    return {**res.to_dict(), "quota_charged": n}
 
 
 # ---------------- diversity picker ----------------
