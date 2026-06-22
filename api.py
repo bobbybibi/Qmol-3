@@ -29,7 +29,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
-                 simmatrix, tautomers, clustering)
+                 simmatrix, tautomers, clustering, formula)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -199,6 +199,10 @@ class TautomerIn(BaseModel):
 class ClusterIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=2000)
     cutoff: float = Field(0.4, ge=0.0, le=1.0)
+
+
+class FormulaIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -528,6 +532,32 @@ def screen_endpoint(body: ScreenIn, x_api_key: str | None = Header(default=None)
     report = screen.screen_batch(body.smiles)
     keysdb.record(x_api_key, "/screen", charge)
     return {**report, "quota_charged": charge}
+
+
+# ---------------- molecular formula / exact mass ----------------
+
+@app.post("/formula")
+def formula_endpoint(body: FormulaIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Molecular formula, exact (monoisotopic) + average mass, elemental
+    composition, and ring/double-bond equivalents. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"formula:{x_api_key}", limit=120, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = formula.compute_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/formula", n)
+    return {"results": results, "quota_charged": n}
 
 
 # ---------------- async jobs ----------------

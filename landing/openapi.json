@@ -623,6 +623,61 @@
         }
       }
     },
+    "/formula": {
+      "post": {
+        "summary": "Formula Endpoint",
+        "description": "Molecular formula, exact (monoisotopic) + average mass, elemental\ncomposition, and ring/double-bond equivalents. Charges 1 SMILES/molecule.",
+        "operationId": "formula_endpoint_formula_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormulaIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/jobs": {
       "post": {
         "summary": "Job Submit",
@@ -2796,6 +2851,24 @@
           "smiles"
         ],
         "title": "FingerprintIn"
+      },
+      "FormulaIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "FormulaIn"
       },
       "HTTPValidationError": {
         "properties": {
