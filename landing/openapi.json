@@ -229,6 +229,61 @@
         }
       }
     },
+    "/similarity/matrix": {
+      "post": {
+        "summary": "Similarity Matrix",
+        "description": "Pairwise ECFP4 Tanimoto matrix among the supplied SMILES (2..500).\n\nReturns the symmetric N\u00d7N matrix plus each row's nearest neighbor \u2014 the\nprimitive for clustering/dedup/SAR. Charges 1 SMILES/input molecule.",
+        "operationId": "similarity_matrix_similarity_matrix_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimMatrixIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/stats": {
       "get": {
         "summary": "Admin Stats",
@@ -2842,6 +2897,24 @@
           "email"
         ],
         "title": "SignupIn"
+      },
+      "SimMatrixIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 2,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "SimMatrixIn"
       },
       "SimilarityIn": {
         "properties": {

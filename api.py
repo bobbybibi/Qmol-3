@@ -28,7 +28,8 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  webhooks_out, teams, prom, scaffolds, audit, rotate as rotatelib,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
-                 parquet_out, usage_stats, scopes, retro, plans, fingerprints)
+                 parquet_out, usage_stats, scopes, retro, plans, fingerprints,
+                 simmatrix)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -184,6 +185,10 @@ class FingerprintIn(BaseModel):
     n_bits: int = Field(2048, ge=64, le=8192)
     radius: int = Field(2, ge=1, le=6)
     output: str = Field("bits", min_length=1)
+
+
+class SimMatrixIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=2, max_length=500)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -372,6 +377,33 @@ def similarity_search(body: SimilarityIn, request: Request,
     keysdb.record(x_api_key, "/similarity", CHARGE)
     return {"query": body.smiles, "hits": [h.to_dict() for h in hits],
             "quota_charged": CHARGE}
+
+
+@app.post("/similarity/matrix")
+def similarity_matrix(body: SimMatrixIn,
+                      x_api_key: str | None = Header(default=None)):
+    """Pairwise ECFP4 Tanimoto matrix among the supplied SMILES (2..500).
+
+    Returns the symmetric N×N matrix plus each row's nearest neighbor — the
+    primitive for clustering/dedup/SAR. Charges 1 SMILES/input molecule.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"simmatrix:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = simmatrix.compute(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/similarity/matrix", n)
+    return {**res.to_dict(), "quota_charged": n}
 
 
 # ---------------- admin endpoints (token-gated) ----------------
