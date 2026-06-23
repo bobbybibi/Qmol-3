@@ -4,7 +4,6 @@
 <meta charset="utf-8" />
 <title>Q-Mol — Checkout</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<script src="https://js.stripe.com/v3/"></script>
 <style>
   body { font: 16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
          background:#0b1020; color:#e7ecf3; margin:0; }
@@ -26,49 +25,51 @@
   <h1>Q-Mol — Checkout</h1>
   <p>Pay once. Receive a signed download link by email. Updates included.</p>
 
-  <div class="tier selected" data-price="price_research">
+  <div class="tier selected" data-tier="research">
     <div><strong>Research</strong><br><small>CC BY-NC 4.0 — academic / non-commercial</small></div>
     <div>$29</div>
   </div>
-  <div class="tier" data-price="price_commercial">
+  <div class="tier" data-tier="commercial">
     <div><strong>Commercial</strong><br><small>Per-team license, ML training OK</small></div>
     <div>$299</div>
   </div>
-  <div class="tier" data-price="price_redistribution">
+  <div class="tier" data-tier="redistribution">
     <div><strong>Redistribution</strong><br><small>Resell / bundle inside your product</small></div>
     <div>$999</div>
   </div>
 
   <p style="margin-top:22px;"><button id="pay">Checkout with Stripe →</button></p>
-  <p><small>Powered by Stripe. Replace the <code>STRIPE_PUBLISHABLE_KEY</code> and
-    <code>CHECKOUT_ENDPOINT</code> placeholders below with your own before going live.</small></p>
+  <p><small>Secure subscription checkout hosted by Stripe. The API provisions and
+    emails your key automatically once payment completes.</small></p>
 </div>
 
 <script>
-  const STRIPE_PUBLISHABLE_KEY = "pk_live_REPLACE_ME";
-  const CHECKOUT_ENDPOINT = "https://YOUR-SERVERLESS/create-checkout";
-
-  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
-  let selectedPrice = "price_research";
+  const API = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+  let selectedTier = "research";
 
   document.querySelectorAll(".tier").forEach(el => {
     el.addEventListener("click", () => {
       document.querySelectorAll(".tier").forEach(t => t.classList.remove("selected"));
       el.classList.add("selected");
-      selectedPrice = el.dataset.price;
+      selectedTier = el.dataset.tier;
     });
   });
 
   document.getElementById("pay").addEventListener("click", async (e) => {
     e.target.disabled = true;
     try {
-      const r = await fetch(CHECKOUT_ENDPOINT, {
+      const r = await fetch(API + "/billing/checkout", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({ price_id: selectedPrice }),
+        body: JSON.stringify({ tier: selectedTier }),
       });
-      const { sessionId } = await r.json();
-      await stripe.redirectToCheckout({ sessionId });
+      const j = await r.json();
+      if (!r.ok || !j.url) {
+        alert("Checkout unavailable: " + (j.detail || r.status));
+        e.target.disabled = false;
+        return;
+      }
+      window.location.href = j.url;   // Stripe-hosted checkout page
     } catch (err) {
       alert("Checkout error: " + err.message);
       e.target.disabled = false;

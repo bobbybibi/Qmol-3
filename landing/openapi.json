@@ -3043,6 +3043,43 @@
         }
       }
     },
+    "/billing/checkout": {
+      "post": {
+        "summary": "Billing Checkout",
+        "description": "Create a Stripe Checkout *subscription* session for a tier and return the\nhosted-checkout URL. Public (the buyer has no key yet \u2014 the Stripe webhook\nprovisions + emails the key on payment). Returns 503 until Stripe is\nconfigured, so the endpoint is safe to ship before keys are set.",
+        "operationId": "billing_checkout_billing_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/coupon/check": {
       "post": {
         "summary": "Coupon Check",
@@ -3211,6 +3248,42 @@
           "smiles"
         ],
         "title": "ChargesIn"
+      },
+      "CheckoutSessionIn": {
+        "properties": {
+          "tier": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tier"
+          },
+          "success_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success Url"
+          },
+          "cancel_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier"
+        ],
+        "title": "CheckoutSessionIn"
       },
       "ClusterIn": {
         "properties": {

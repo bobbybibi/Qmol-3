@@ -272,6 +272,12 @@ class CouponCheckIn(BaseModel):
     tier: str
 
 
+class CheckoutSessionIn(BaseModel):
+    tier: str = Field(..., min_length=1)
+    success_url: str | None = None
+    cancel_url: str | None = None
+
+
 class MagicLinkIn(BaseModel):
     email: EmailStr
 
@@ -1577,6 +1583,51 @@ def openapi_static():
 
 
 # ---------------- coupons (checkout helper) ----------------
+
+# Tier -> Stripe price env var (matches stripe_webhook.TIER_FROM_PRICE keys).
+_CHECKOUT_TIERS = {
+    "research": "STRIPE_PRICE_RESEARCH",
+    "commercial": "STRIPE_PRICE_COMMERCIAL",
+    "redistribution": "STRIPE_PRICE_REDISTRIBUTION",
+}
+
+
+@app.post("/billing/checkout")
+def billing_checkout(body: CheckoutSessionIn):
+    """Create a Stripe Checkout *subscription* session for a tier and return the
+    hosted-checkout URL. Public (the buyer has no key yet — the Stripe webhook
+    provisions + emails the key on payment). Returns 503 until Stripe is
+    configured, so the endpoint is safe to ship before keys are set.
+    """
+    tier = body.tier.lower()
+    env_var = _CHECKOUT_TIERS.get(tier)
+    if not env_var:
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown tier '{tier}'. Choose: {sorted(_CHECKOUT_TIERS)}")
+    price_id = os.getenv(env_var, f"price_{tier}")
+    try:
+        import stripe  # type: ignore
+    except Exception:
+        raise HTTPException(status_code=503,
+                            detail="Billing not configured (stripe library not installed)")
+    secret = os.getenv("STRIPE_SECRET_KEY")
+    if not secret:
+        raise HTTPException(status_code=503,
+                            detail="Billing not configured (STRIPE_SECRET_KEY unset)")
+    stripe.api_key = secret
+    base = os.getenv("QMOL_PUBLIC_URL", "https://qmol.app").rstrip("/")
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=body.success_url or f"{base}/portal.html?paid=1",
+            cancel_url=body.cancel_url or f"{base}/checkout.html",
+            allow_promotion_codes=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Stripe error: {e}")
+    return {"url": session.url, "id": session.id, "tier": tier}
+
 
 @app.post("/coupon/check")
 def coupon_check(body: CouponCheckIn):
