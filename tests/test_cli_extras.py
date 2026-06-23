@@ -106,3 +106,9 @@ def test_cli_stereoisomers():
     r = runner.invoke(qmol_cli, ["stereoisomers", "CC(O)C(N)C(=O)O"])
     assert r.exit_code == 0
     assert "n=4" in r.output
+
+
+def test_cli_shape3d():
+    r = runner.invoke(qmol_cli, ["shape3d", "c1ccccc1"])
+    assert r.exit_code == 0
+    assert "NPR1=" in r.output and "NPR2=" in r.output

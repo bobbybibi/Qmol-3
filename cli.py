@@ -32,6 +32,7 @@ from src import mcs as qmcs
 from src import charges as qcharges
 from src import alerts as qalerts
 from src import stereoisomers as qstereo
+from src import shape3d as qshape3d
 from src import storage
 import config
 
@@ -289,6 +290,22 @@ def stereoisomers(smiles: List[str],
         typer.echo(f"{smi}  n={r.n_isomers}{flag}")
         for iso in r.isomers:
             typer.echo(f"    {iso}")
+
+
+@cli.command()
+def shape3d(smiles: List[str]):
+    """3D shape descriptors (NPR1/NPR2, radius of gyration) from a conformer."""
+    for smi in smiles:
+        try:
+            r = qshape3d.compute_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        if not r.success:
+            typer.echo(f"{smi}  embedding failed")
+            continue
+        typer.echo(f"{smi}\tNPR1={r.npr1}\tNPR2={r.npr2}\t"
+                   f"Rgyr={r.radius_of_gyration}\tasph={r.asphericity}")
 
 
 @cli.command()

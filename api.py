@@ -30,7 +30,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
                  simmatrix, tautomers, clustering, formula, descriptors, convert,
-                 mcs, charges, alerts, stereoisomers)
+                 mcs, charges, alerts, stereoisomers, shape3d)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -237,6 +237,10 @@ class StereoIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=1000)
     max_isomers: int = Field(64, ge=1, le=1024)
     only_unassigned: bool = True
+
+
+class Shape3DIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=500)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -755,6 +759,33 @@ def conformers_endpoint(body: ConformerIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/conformers", CHARGE)
     return {**conf.to_dict(), "quota_charged": CHARGE}
+
+
+# ---------------- 3D shape descriptors ----------------
+
+@app.post("/shape3d")
+def shape3d_endpoint(body: Shape3DIn,
+                     x_api_key: str | None = Header(default=None)):
+    """3D shape descriptors (NPR1/NPR2, asphericity, radius of gyration, …) from
+    a generated conformer. Embedding failures degrade to success=false.
+    Charges 5 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"shape3d:{x_api_key}", limit=20, window=60.0)
+    charge = 5 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = shape3d.compute_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/shape3d", charge)
+    return {"results": results, "quota_charged": charge}
 
 
 # ---------------- reaction enumeration ----------------

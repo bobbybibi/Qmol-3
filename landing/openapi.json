@@ -1082,6 +1082,61 @@
         }
       }
     },
+    "/shape3d": {
+      "post": {
+        "summary": "Shape3D Endpoint",
+        "description": "3D shape descriptors (NPR1/NPR2, asphericity, radius of gyration, \u2026) from\na generated conformer. Embedding failures degrade to success=false.\nCharges 5 SMILES/molecule.",
+        "operationId": "shape3d_endpoint_shape3d_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Shape3DIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/react": {
       "post": {
         "summary": "React Endpoint",
@@ -3593,6 +3648,24 @@
           "smiles"
         ],
         "title": "SdfDownloadIn"
+      },
+      "Shape3DIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "Shape3DIn"
       },
       "SignupIn": {
         "properties": {
