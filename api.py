@@ -30,7 +30,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
                  simmatrix, tautomers, clustering, formula, descriptors, convert,
-                 mcs)
+                 mcs, charges)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -222,6 +222,11 @@ class MCSIn(BaseModel):
     complete_rings_only: bool = False
     ring_matches_ring_only: bool = False
     timeout: int = Field(10, ge=1, le=60)
+
+
+class ChargesIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=1000)
+    include_hs: bool = False
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -1151,6 +1156,32 @@ def mcs_endpoint(body: MCSIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/mcs", n)
     return {**res.to_dict(), "quota_charged": n}
+
+
+# ---------------- Gasteiger partial charges ----------------
+
+@app.post("/charges")
+def charges_endpoint(body: ChargesIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Gasteiger (PEOE) partial atomic charges per molecule. Heavy atoms by
+    default; set include_hs to include hydrogens. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"charges:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = charges.compute_batch(body.smiles, include_hs=body.include_hs)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/charges", n)
+    return {"results": results, "quota_charged": n}
 
 
 # ---------------- diversity picker ----------------

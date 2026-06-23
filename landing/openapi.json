@@ -2139,6 +2139,61 @@
         }
       }
     },
+    "/charges": {
+      "post": {
+        "summary": "Charges Endpoint",
+        "description": "Gasteiger (PEOE) partial atomic charges per molecule. Heavy atoms by\ndefault; set include_hs to include hydrogens. Charges 1 SMILES/molecule.",
+        "operationId": "charges_endpoint_charges_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/diversity": {
       "post": {
         "summary": "Diversity Endpoint",
@@ -2878,6 +2933,29 @@
           "file"
         ],
         "title": "Body_upload_compute_upload_compute_post"
+      },
+      "ChargesIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "include_hs": {
+            "type": "boolean",
+            "title": "Include Hs",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ChargesIn"
       },
       "ClusterIn": {
         "properties": {

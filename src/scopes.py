@@ -36,7 +36,7 @@ KNOWN_SCOPES = {
     "*", "compute", "compute:premium", "similarity", "screen", "predict",
     "conformers", "reactions", "standardize", "tautomers", "scaffolds", "upload",
     "substructure", "diversity", "fingerprints", "cluster", "formula",
-    "descriptors", "convert", "mcs", "download", "export", "jobs", "usage",
+    "descriptors", "convert", "mcs", "charges", "download", "export", "jobs", "usage",
     "audit", "invoice", "key:rotate", "teams", "webhooks", "referrals",
 }
 
