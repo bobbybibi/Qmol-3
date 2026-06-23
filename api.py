@@ -30,7 +30,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
                  simmatrix, tautomers, clustering, formula, descriptors, convert,
-                 mcs, charges)
+                 mcs, charges, alerts)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -227,6 +227,10 @@ class MCSIn(BaseModel):
 class ChargesIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=1000)
     include_hs: bool = False
+
+
+class AlertsIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -581,6 +585,38 @@ def formula_endpoint(body: FormulaIn,
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/formula", n)
+    return {"results": results, "quota_charged": n}
+
+
+# ---------------- structural alerts ----------------
+
+@app.get("/alerts/catalogs")
+def alert_catalogs():
+    """Public: list the structural-alert catalogs screened (no auth)."""
+    return {"catalogs": list(alerts.CATALOG_NAMES)}
+
+
+@app.post("/alerts")
+def alerts_endpoint(body: AlertsIn,
+                    x_api_key: str | None = Header(default=None)):
+    """Structural-alert screen across PAINS A/B/C, BRENK, NIH, ZINC — reports
+    which alerts fire and from which catalog. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"alerts:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = alerts.screen_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/alerts", n)
     return {"results": results, "quota_charged": n}
 
 

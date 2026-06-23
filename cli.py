@@ -30,6 +30,7 @@ from src import convert as qconvert
 from src import descriptors as qdescriptors
 from src import mcs as qmcs
 from src import charges as qcharges
+from src import alerts as qalerts
 from src import storage
 import config
 
@@ -254,6 +255,23 @@ def charges(smiles: List[str],
         typer.echo(f"{smi}  total={r.total_charge}")
         for a in r.atoms:
             typer.echo(f"    {a['idx']:>3} {a['symbol']:<2} {a['charge']}")
+
+
+@cli.command()
+def alerts(smiles: List[str]):
+    """Structural-alert screen (PAINS/BRENK/NIH/ZINC)."""
+    for smi in smiles:
+        try:
+            r = qalerts.screen_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        if r.clean:
+            typer.echo(f"{smi}  CLEAN")
+            continue
+        typer.echo(f"{smi}  {r.n_alerts} alerts  {r.catalogs_hit}")
+        for a in r.alerts:
+            typer.echo(f"    {a['catalog']:<8} {a['description']}")
 
 
 @cli.command()

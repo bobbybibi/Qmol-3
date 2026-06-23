@@ -88,3 +88,15 @@ def test_cli_charges():
     assert r.exit_code == 0
     assert "total=" in r.output
     assert " O " in r.output           # oxygen atom row
+
+
+def test_cli_alerts_clean():
+    r = runner.invoke(qmol_cli, ["alerts", "CCO"])
+    assert r.exit_code == 0
+    assert "CLEAN" in r.output
+
+
+def test_cli_alerts_flagged():
+    r = runner.invoke(qmol_cli, ["alerts", "O=[N+]([O-])c1ccccc1"])
+    assert r.exit_code == 0
+    assert "BRENK" in r.output

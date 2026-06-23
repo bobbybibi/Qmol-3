@@ -678,6 +678,78 @@
         }
       }
     },
+    "/alerts/catalogs": {
+      "get": {
+        "summary": "Alert Catalogs",
+        "description": "Public: list the structural-alert catalogs screened (no auth).",
+        "operationId": "alert_catalogs_alerts_catalogs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alerts": {
+      "post": {
+        "summary": "Alerts Endpoint",
+        "description": "Structural-alert screen across PAINS A/B/C, BRENK, NIH, ZINC \u2014 reports\nwhich alerts fire and from which catalog. Charges 1 SMILES/molecule.",
+        "operationId": "alerts_endpoint_alerts_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/descriptors/names": {
       "get": {
         "summary": "Descriptor Names",
@@ -2920,6 +2992,24 @@
   },
   "components": {
     "schemas": {
+      "AlertsIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "AlertsIn"
+      },
       "Body_upload_compute_upload_compute_post": {
         "properties": {
           "file": {
