@@ -112,3 +112,9 @@ def test_cli_shape3d():
     r = runner.invoke(qmol_cli, ["shape3d", "c1ccccc1"])
     assert r.exit_code == 0
     assert "NPR1=" in r.output and "NPR2=" in r.output
+
+
+def test_cli_dedup():
+    r = runner.invoke(qmol_cli, ["dedup", "CCO", "OCC", "c1ccccc1"])
+    assert r.exit_code == 0
+    assert "3 input -> 2 unique" in r.output

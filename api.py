@@ -30,7 +30,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  cache as result_cache, diversity, sdf_out,
                  parquet_out, usage_stats, scopes, retro, plans, fingerprints,
                  simmatrix, tautomers, clustering, formula, descriptors, convert,
-                 mcs, charges, alerts, stereoisomers, shape3d)
+                 mcs, charges, alerts, stereoisomers, shape3d, dedup)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
@@ -241,6 +241,10 @@ class StereoIn(BaseModel):
 
 class Shape3DIn(BaseModel):
     smiles: List[str] = Field(..., min_length=1, max_length=500)
+
+
+class DedupIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=50_000)
 
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
@@ -936,6 +940,29 @@ def convert_endpoint(body: ConvertIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/convert", n)
     return {"results": results, "quota_charged": n}
+
+
+# ---------------- dedup by InChIKey ----------------
+
+@app.post("/dedup")
+def dedup_endpoint(body: DedupIn,
+                   x_api_key: str | None = Header(default=None)):
+    """Collapse a SMILES list to unique structures by InChIKey, reporting which
+    input indices map to each. Charges 1 SMILES/input molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"dedup:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    res = dedup.dedup(body.smiles)
+    keysdb.record(x_api_key, "/dedup", n)
+    return {**res.to_dict(), "quota_charged": n}
 
 
 # ---------------- outbound webhooks ----------------

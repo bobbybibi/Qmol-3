@@ -33,6 +33,7 @@ from src import charges as qcharges
 from src import alerts as qalerts
 from src import stereoisomers as qstereo
 from src import shape3d as qshape3d
+from src import dedup as qdedup
 from src import storage
 import config
 
@@ -306,6 +307,16 @@ def shape3d(smiles: List[str]):
             continue
         typer.echo(f"{smi}\tNPR1={r.npr1}\tNPR2={r.npr2}\t"
                    f"Rgyr={r.radius_of_gyration}\tasph={r.asphericity}")
+
+
+@cli.command()
+def dedup(smiles: List[str]):
+    """Deduplicate SMILES by InChIKey; prints unique structures + counts."""
+    res = qdedup.dedup(list(smiles))
+    typer.echo(f"{res.n_input} input -> {res.n_unique} unique "
+               f"({res.n_duplicates} duplicates, {len(res.invalid)} invalid)")
+    for g in res.groups:
+        typer.echo(f"  x{g['count']:<3} {g['canonical_smiles']}")
 
 
 @cli.command()

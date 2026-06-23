@@ -37,7 +37,7 @@ KNOWN_SCOPES = {
     "conformers", "reactions", "standardize", "tautomers", "scaffolds", "upload",
     "substructure", "diversity", "fingerprints", "cluster", "formula",
     "descriptors", "convert", "mcs", "charges", "alerts", "stereoisomers",
-    "shape3d", "download", "export", "jobs", "usage",
+    "shape3d", "dedup", "download", "export", "jobs", "usage",
     "audit", "invoice", "key:rotate", "teams", "webhooks", "referrals",
 }
 

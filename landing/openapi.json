@@ -1429,6 +1429,61 @@
         }
       }
     },
+    "/dedup": {
+      "post": {
+        "summary": "Dedup Endpoint",
+        "description": "Collapse a SMILES list to unique structures by InChIKey, reporting which\ninput indices map to each. Charges 1 SMILES/input molecule.",
+        "operationId": "dedup_endpoint_dedup_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DedupIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/webhooks/subscribe": {
       "post": {
         "summary": "Webhook Subscribe",
@@ -3266,6 +3321,24 @@
           "tier"
         ],
         "title": "CouponCheckIn"
+      },
+      "DedupIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "DedupIn"
       },
       "DescriptorsIn": {
         "properties": {
