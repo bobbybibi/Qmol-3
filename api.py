@@ -278,6 +278,12 @@ class CheckoutSessionIn(BaseModel):
     cancel_url: str | None = None
 
 
+class PlayVerifyIn(BaseModel):
+    product_id: str = Field(..., min_length=1)
+    purchase_token: str = Field(..., min_length=1)
+    email: EmailStr | None = None
+
+
 class MagicLinkIn(BaseModel):
     email: EmailStr
 
@@ -1573,6 +1579,26 @@ def reference_page():
     raise HTTPException(status_code=404, detail="not found")
 
 
+def _serve_landing(filename: str):
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "landing" / filename
+    if p.exists():
+        return FileResponse(p, media_type="text/html")
+    raise HTTPException(status_code=404, detail="not found")
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy_page():
+    """Public privacy policy (stable URL for app stores / payment providers)."""
+    return _serve_landing("privacy.html")
+
+
+@app.get("/terms", include_in_schema=False)
+def terms_page():
+    """Public terms of service."""
+    return _serve_landing("terms.html")
+
+
 @app.get("/openapi-static.json", include_in_schema=False)
 def openapi_static():
     from fastapi.responses import FileResponse
@@ -1627,6 +1653,71 @@ def billing_checkout(body: CheckoutSessionIn):
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=502, detail=f"Stripe error: {e}")
     return {"url": session.url, "id": session.id, "tier": tier}
+
+
+# Android Play product id -> tier. Google Play *requires* its own billing for
+# in-app digital purchases (Stripe is not permitted for Android IAP), so the
+# Android app buys via Play Billing and posts the purchase token here to verify.
+_PLAY_PRODUCTS = {
+    os.getenv("PLAY_PRODUCT_RESEARCH", "qmol_research_monthly"): "research",
+    os.getenv("PLAY_PRODUCT_COMMERCIAL", "qmol_commercial_monthly"): "commercial",
+}
+
+
+def _verify_play_purchase(package: str, product_id: str, token: str,
+                          service_account_json: str) -> bool:
+    """Return True if the Play subscription purchase token is valid + active.
+
+    Uses the Google Play Developer API. Kept behind the configuration/library
+    guards in the endpoint so the service runs fine before Play is set up.
+    """
+    import json as _json
+    from google.oauth2 import service_account  # type: ignore
+    from googleapiclient.discovery import build  # type: ignore
+
+    creds = service_account.Credentials.from_service_account_info(
+        _json.loads(service_account_json),
+        scopes=["https://www.googleapis.com/auth/androidpublisher"],
+    )
+    svc = build("androidpublisher", "v3", credentials=creds, cache_discovery=False)
+    res = svc.purchases().subscriptions().get(
+        packageName=package, subscriptionId=product_id, token=token,
+    ).execute()
+    # paymentState 1 = received; expiry in the future => active.
+    import time as _t
+    expiry_ms = int(res.get("expiryTimeMillis", 0))
+    return res.get("paymentState") in (1, 2) and expiry_ms > _t.time() * 1000
+
+
+@app.post("/billing/play/verify")
+def play_verify(body: PlayVerifyIn):
+    """Verify a Google Play subscription purchase (Android in-app billing) and
+    provision/return the API key. Returns 503 until Play credentials are set, so
+    it's safe to ship before the Android app exists."""
+    tier = _PLAY_PRODUCTS.get(body.product_id)
+    if not tier:
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown product '{body.product_id}'")
+    package = os.getenv("ANDROID_PACKAGE_NAME")
+    sa = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")
+    if not package or not sa:
+        raise HTTPException(
+            status_code=503,
+            detail="Play billing not configured (set ANDROID_PACKAGE_NAME + "
+                   "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON)")
+    try:
+        ok = _verify_play_purchase(package, body.product_id, body.purchase_token, sa)
+    except ImportError:
+        raise HTTPException(status_code=503,
+                            detail="Play billing not configured (google-api-python-client not installed)")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Play verification error: {e}")
+    if not ok:
+        raise HTTPException(status_code=402, detail="Purchase not valid or not active")
+    email = str(body.email) if body.email else f"play+{body.purchase_token[:12]}@qmol.app"
+    info = keysdb.provision(email, tier)
+    return {"api_key": info.key, "tier": info.tier,
+            "monthly_quota": info.monthly_quota}
 
 
 @app.post("/coupon/check")

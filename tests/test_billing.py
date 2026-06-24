@@ -82,3 +82,37 @@ def test_custom_redirect_urls(monkeypatch):
     assert r.status_code == 200, r.text
     assert captured["success_url"] == "https://x.test/ok"
     assert captured["cancel_url"] == "https://x.test/no"
+
+
+# ---------- compliance: privacy/terms pages + Play billing ----------
+
+def test_privacy_policy_served():
+    client = TestClient(api.app)
+    r = client.get("/privacy")
+    assert r.status_code == 200
+    assert "Privacy Policy" in r.text
+    assert "do not sell" in r.text.lower() or "not sell" in r.text.lower()
+
+
+def test_terms_served():
+    client = TestClient(api.app)
+    r = client.get("/terms")
+    assert r.status_code == 200
+    assert "Terms of Service" in r.text
+
+
+def test_play_unknown_product_400():
+    client = TestClient(api.app)
+    r = client.post("/billing/play/verify",
+                    json={"product_id": "not_a_product", "purchase_token": "tok"})
+    assert r.status_code == 400
+
+
+def test_play_unconfigured_503(monkeypatch):
+    monkeypatch.delenv("ANDROID_PACKAGE_NAME", raising=False)
+    monkeypatch.delenv("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON", raising=False)
+    client = TestClient(api.app)
+    r = client.post("/billing/play/verify",
+                    json={"product_id": "qmol_research_monthly", "purchase_token": "tok"})
+    assert r.status_code == 503
+    assert "not configured" in r.json()["detail"].lower()
