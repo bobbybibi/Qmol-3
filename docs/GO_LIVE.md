@@ -59,7 +59,8 @@ PLAY_PRODUCT_RESEARCH=qmol_research_monthly
 PLAY_PRODUCT_COMMERCIAL=qmol_commercial_monthly
 ```
 The Android app buys via Play Billing v7+ and posts the token to
-`/billing/play/verify`, which provisions the same key.
+`/billing/play/verify`, which provisions the same key. The Flutter app lives in
+`mobile/` — see `mobile/README.md` for the build + publish steps.
 
 ## 4. Store / legal prerequisites (do before any public listing)
 
