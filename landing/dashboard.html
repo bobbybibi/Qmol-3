@@ -107,10 +107,10 @@ async function load() {
       api('/usage'),
       api('/usage/history?days=30'),
     ]);
-    $('used').textContent = fmt(usage.used ?? 0);
-    $('quota').textContent = `of ${fmt(usage.quota ?? 0)}`;
+    $('used').textContent = fmt(usage.used_this_month ?? 0);
+    $('quota').textContent = `of ${fmt(usage.monthly_quota ?? 0)}`;
     $('tier').textContent = usage.tier || "—";
-    $('email').textContent = usage.email || "";
+    $('email').textContent = usage.active ? "active" : "inactive";
     const totalCalls = hist.daily.reduce((a,d) => a + d.calls, 0);
     const totalSmi = hist.daily.reduce((a,d) => a + d.smiles, 0);
     $('calls30').textContent = fmt(totalCalls);

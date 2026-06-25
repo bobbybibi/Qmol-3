@@ -147,3 +147,41 @@ def deactivate(key: str, db: Path | None = None) -> None:
     conn.execute("UPDATE api_keys SET active=0 WHERE key=?", (key,))
     conn.commit()
     conn.close()
+
+
+def delete_account(key: str, db: Path | None = None) -> dict:
+    """Permanently delete the caller's account + all associated data.
+
+    Required by Google Play / GDPR ("delete my account"). Removes every key
+    under the same email, plus that key's usage, audit log, scopes, team
+    memberships, webhooks, referral code, and magic-link tokens. Missing tables
+    (created lazily by their modules) are skipped, not errors.
+    """
+    conn = _connect(db)
+    row = conn.execute("SELECT email FROM api_keys WHERE key=?", (key,)).fetchone()
+    if not row:
+        conn.close()
+        raise ValueError("unknown key")
+    email = row[0]
+    member_keys = [r[0] for r in conn.execute(
+        "SELECT key FROM api_keys WHERE email=?", (email,)).fetchall()]
+
+    def _del(sql: str, params: tuple) -> int:
+        try:
+            return conn.execute(sql, params).rowcount
+        except sqlite3.OperationalError:
+            return 0   # table doesn't exist yet
+
+    removed: dict[str, int] = {}
+    per_key = [("usage", "key"), ("audit", "api_key"), ("key_scopes", "api_key"),
+               ("team_members", "api_key"), ("webhooks", "api_key"),
+               ("webhook_deliveries", "api_key"), ("ref_codes", "api_key")]
+    for k in member_keys:
+        for table, col in per_key:
+            removed[table] = removed.get(table, 0) + _del(
+                f"DELETE FROM {table} WHERE {col}=?", (k,))
+    removed["magic_tokens"] = _del("DELETE FROM magic_tokens WHERE email=?", (email,))
+    removed["api_keys"] = _del("DELETE FROM api_keys WHERE email=?", (email,))
+    conn.commit()
+    conn.close()
+    return {"email": email, "keys_deleted": len(member_keys), "removed": removed}

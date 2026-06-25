@@ -22,6 +22,18 @@ from src import screen as qscreen
 from src import predict as qpredict
 from src import similarity as qsimilarity
 from src import conformers as qconformers
+from src import fingerprints as qfingerprints
+from src import tautomers as qtautomers
+from src import clustering as qclustering
+from src import formula as qformula
+from src import convert as qconvert
+from src import descriptors as qdescriptors
+from src import mcs as qmcs
+from src import charges as qcharges
+from src import alerts as qalerts
+from src import stereoisomers as qstereo
+from src import shape3d as qshape3d
+from src import dedup as qdedup
 from src import storage
 import config
 
@@ -123,6 +135,188 @@ def compute_file(
     else:
         df.to_csv(out, index=False)
     typer.echo(f"Wrote {len(df):,} rows -> {out}")
+
+
+@cli.command()
+def fingerprint(smiles: List[str],
+                kind: str = typer.Option("morgan", "--kind", "-k",
+                                         help="morgan|rdkit|atompair|torsion|maccs"),
+                bits: int = typer.Option(2048, "--bits"),
+                radius: int = typer.Option(2, "--radius")):
+    """Compute molecular fingerprints; prints width + on-bit count per molecule."""
+    for smi in smiles:
+        try:
+            fp = qfingerprints.compute_one(smi, kind=kind, n_bits=bits, radius=radius)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        typer.echo(f"{smi}\t{fp.kind}\tn_bits={fp.n_bits}\ton_bits={fp.n_on_bits}")
+
+
+@cli.command()
+def tautomers(smiles: List[str],
+              max_tautomers: int = typer.Option(100, "--max")):
+    """Enumerate tautomers and print the canonical form for each molecule."""
+    for smi in smiles:
+        try:
+            r = qtautomers.enumerate_one(smi, max_tautomers=max_tautomers)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        typer.echo(f"{smi}  canonical={r.canonical}  n={r.n_tautomers}")
+        for t in r.tautomers:
+            typer.echo(f"    {t}")
+
+
+@cli.command()
+def cluster(smiles: List[str],
+            cutoff: float = typer.Option(0.4, "--cutoff", "-c",
+                                         help="Tanimoto DISTANCE cutoff (1 - similarity)")):
+    """Butina-cluster molecules by ECFP4 distance; prints each cluster centroid."""
+    try:
+        res = qclustering.cluster(list(smiles), cutoff=cutoff)
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1)
+    typer.echo(f"{res.n_valid} molecules -> {res.n_clusters} clusters (cutoff={cutoff})")
+    for c in res.clusters:
+        typer.echo(f"  cluster {c['cluster_id']} (n={c['size']}) "
+                   f"centroid={c['centroid']}")
+
+
+@cli.command()
+def formula(smiles: List[str]):
+    """Molecular formula, exact + average mass, and RDBE per molecule."""
+    for smi in smiles:
+        try:
+            f = qformula.compute_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        typer.echo(f"{smi}\t{f.formula}\texact={f.exact_mass:.4f}\t"
+                   f"avg={f.average_mass:.3f}\tRDBE={f.rdbe:g}")
+
+
+@cli.command()
+def convert(smiles: List[str],
+            input_format: str = typer.Option("smiles", "--from",
+                                             help="input format: smiles|inchi")):
+    """Convert to canonical SMILES + InChIKey (tab-separated)."""
+    for v in smiles:
+        try:
+            c = qconvert.convert_one(v, input_format=input_format)
+        except ValueError as e:
+            typer.echo(f"FAIL {v}: {e}")
+            continue
+        typer.echo(f"{c.canonical_smiles}\t{c.inchikey}")
+
+
+@cli.command()
+def descriptors(smiles: List[str],
+                names: str = typer.Option("", "--names",
+                                          help="comma-separated subset")):
+    """Full RDKit 2D descriptor panel, or a --names subset."""
+    sel = [n.strip() for n in names.split(",") if n.strip()] or None
+    for smi in smiles:
+        try:
+            r = qdescriptors.compute_one(smi, names=sel)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        d = r["descriptors"]
+        if sel:
+            typer.echo(f"{smi}  " + "  ".join(f"{k}={d[k]}" for k in sel))
+        else:
+            typer.echo(f"{smi}  n_descriptors={len(d)}  (use --names to filter)")
+
+
+@cli.command()
+def mcs(smiles: List[str]):
+    """Maximum common substructure across 2+ molecules (prints SMARTS/SMILES)."""
+    try:
+        r = qmcs.find(list(smiles))
+    except ValueError as e:
+        typer.echo(str(e), err=True)
+        raise typer.Exit(1)
+    typer.echo(f"{r.n_valid} molecules  atoms={r.num_atoms} bonds={r.num_bonds}  "
+               f"completed={r.completed}")
+    typer.echo(f"  SMARTS: {r.smarts}")
+    if r.smiles:
+        typer.echo(f"  SMILES: {r.smiles}")
+
+
+@cli.command()
+def charges(smiles: List[str],
+            include_hs: bool = typer.Option(False, "--hs", help="include hydrogens")):
+    """Gasteiger partial atomic charges (heavy atoms by default)."""
+    for smi in smiles:
+        try:
+            r = qcharges.compute_one(smi, include_hs=include_hs)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        typer.echo(f"{smi}  total={r.total_charge}")
+        for a in r.atoms:
+            typer.echo(f"    {a['idx']:>3} {a['symbol']:<2} {a['charge']}")
+
+
+@cli.command()
+def alerts(smiles: List[str]):
+    """Structural-alert screen (PAINS/BRENK/NIH/ZINC)."""
+    for smi in smiles:
+        try:
+            r = qalerts.screen_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        if r.clean:
+            typer.echo(f"{smi}  CLEAN")
+            continue
+        typer.echo(f"{smi}  {r.n_alerts} alerts  {r.catalogs_hit}")
+        for a in r.alerts:
+            typer.echo(f"    {a['catalog']:<8} {a['description']}")
+
+
+@cli.command()
+def stereoisomers(smiles: List[str],
+                  max_isomers: int = typer.Option(64, "--max")):
+    """Enumerate distinct stereoisomers per molecule."""
+    for smi in smiles:
+        try:
+            r = qstereo.enumerate_one(smi, max_isomers=max_isomers)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        flag = " (truncated)" if r.truncated else ""
+        typer.echo(f"{smi}  n={r.n_isomers}{flag}")
+        for iso in r.isomers:
+            typer.echo(f"    {iso}")
+
+
+@cli.command()
+def shape3d(smiles: List[str]):
+    """3D shape descriptors (NPR1/NPR2, radius of gyration) from a conformer."""
+    for smi in smiles:
+        try:
+            r = qshape3d.compute_one(smi)
+        except ValueError as e:
+            typer.echo(f"FAIL {smi}: {e}")
+            continue
+        if not r.success:
+            typer.echo(f"{smi}  embedding failed")
+            continue
+        typer.echo(f"{smi}\tNPR1={r.npr1}\tNPR2={r.npr2}\t"
+                   f"Rgyr={r.radius_of_gyration}\tasph={r.asphericity}")
+
+
+@cli.command()
+def dedup(smiles: List[str]):
+    """Deduplicate SMILES by InChIKey; prints unique structures + counts."""
+    res = qdedup.dedup(list(smiles))
+    typer.echo(f"{res.n_input} input -> {res.n_unique} unique "
+               f"({res.n_duplicates} duplicates, {len(res.invalid)} invalid)")
+    for g in res.groups:
+        typer.echo(f"  x{g['count']:<3} {g['canonical_smiles']}")
 
 
 @cli.command()

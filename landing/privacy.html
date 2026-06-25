@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Q-Mol — Privacy Policy</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body { font: 16px/1.6 system-ui,Segoe UI,Roboto,Arial,sans-serif;
+         background:#0b1020; color:#e7ecf3; margin:0; }
+  .wrap { max-width: 820px; margin: 48px auto; padding: 0 20px; }
+  h1 { font-size: 28px; margin-bottom: 4px; }
+  h2 { color:#7dd3fc; margin-top: 32px; font-size: 20px; }
+  .muted { color:#8a95a8; }
+  a { color:#6cf; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid #22314e; vertical-align:top; }
+  code { background:#121a2e; padding:1px 5px; border-radius:5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Q-Mol — Privacy Policy</h1>
+  <p class="muted">Last updated: 2026-06-24. Q-Mol is operated by Photon Bounce
+    ("we", "us"). Contact: <a href="mailto:privacy@qmol.app">privacy@qmol.app</a>.</p>
+
+  <p>This policy explains what data Q-Mol collects when you use the website, API,
+     CLI, or mobile app, why we collect it, and your choices. We sell software,
+     not your data.</p>
+
+  <h2>1. Data we collect</h2>
+  <table>
+    <tr><th>Data</th><th>Why</th><th>Kept</th></tr>
+    <tr><td>Email address</td><td>Issue/recover your API key, billing, account email</td><td>Until you delete your account</td></tr>
+    <tr><td>API key</td><td>Authenticate your requests, enforce quota</td><td>Until rotated or deleted</td></tr>
+    <tr><td>Usage metadata (endpoint, request counts, timestamps, IP address, response status)</td><td>Quota/billing, rate-limiting, abuse prevention, uptime stats</td><td>Up to 13 months</td></tr>
+    <tr><td>Molecular structures you submit (SMILES/SDF/InChI)</td><td>Solely to compute and return the result you asked for</td><td>See §3</td></tr>
+    <tr><td>Webhook URLs / secrets you configure</td><td>Deliver the async-job notifications you requested</td><td>Until you unsubscribe</td></tr>
+    <tr><td>Payment info</td><td>Processed by Stripe / Google Play — we never see or store card numbers</td><td>Held by the payment processor</td></tr>
+  </table>
+
+  <h2>2. How we use it</h2>
+  <p>To provide and bill the service, prevent abuse, keep the service reliable,
+     and contact you about your account. We do <strong>not</strong> use your
+     submitted molecular structures to build or sell datasets, and we do not
+     share them with third parties, except as needed to run the computation you
+     requested or as required by law.</p>
+
+  <h2>3. Your molecular structures</h2>
+  <p>Structures you submit are processed to return descriptors/results. We cache
+     <em>derived results</em> (keyed by a structure hash) to make repeat requests
+     fast. For async jobs, your input and output files are stored temporarily so
+     you can download them, then deleted. <strong>We do not sell, license, or
+     share your submitted structures.</strong> Treat the public free tier as
+     non-confidential; for confidential chemistry, use a paid plan or self-host.</p>
+
+  <h2>4. Sharing / third parties</h2>
+  <p>We use service providers only to operate Q-Mol: a cloud host (compute),
+     Stripe (payments), Google Play Billing (in-app purchases on Android), and an
+     email provider (key delivery). They process data on our behalf under their
+     own terms. We do not sell personal data.</p>
+
+  <h2>5. Your rights</h2>
+  <p>You can access, export, rotate your key, or delete your account and
+     associated data at any time by emailing
+     <a href="mailto:privacy@qmol.app">privacy@qmol.app</a>. Depending on your
+     location (e.g. GDPR/CCPA) you may have additional rights to access, correct,
+     delete, or port your data, and to object to processing.</p>
+
+  <h2>6. Security &amp; retention</h2>
+  <p>Data is encrypted in transit (HTTPS). We keep data only as long as needed for
+     the purposes above or as required by law, then delete it.</p>
+
+  <h2>7. Children</h2>
+  <p>Q-Mol is a professional/research tool not directed to children under 13 (or
+     the age of digital consent in your region) and we do not knowingly collect
+     their data.</p>
+
+  <h2>8. Changes</h2>
+  <p>We'll update this page and the "last updated" date when our practices change.</p>
+
+  <p class="muted" style="margin-top:32px">This template reflects Q-Mol's actual
+    data flows; have it reviewed by counsel before relying on it for a specific
+    jurisdiction or app-store submission.</p>
+  <p><a href="/terms">Terms of Service</a> · <a href="/app">Home</a></p>
+</div>
+</body>
+</html>

@@ -28,14 +28,16 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  webhooks_out, teams, prom, scaffolds, audit, rotate as rotatelib,
                  invoices, uploads, substructure, exporters,
                  cache as result_cache, diversity, sdf_out,
-                 parquet_out, usage_stats, scopes, retro, plans)
+                 parquet_out, usage_stats, scopes, retro, plans, fingerprints,
+                 simmatrix, tautomers, clustering, formula, descriptors, convert,
+                 mcs, charges, alerts, stereoisomers, shape3d, dedup)
 import config
 
 ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
 
 app = FastAPI(
     title="Q-Mol API",
-    version="1.1.0",
+    version="1.2.0",
     description=(
         "Molecular descriptor, similarity search, drug-likeness screen, "
         "and ADMET prediction API.\n\n"
@@ -89,7 +91,7 @@ async def _scope_middleware(request: Request, call_next):
     key = request.headers.get("x-api-key")
     path = request.url.path
     if key and path not in ("/", "/health", "/metrics") \
-            and not path.startswith(("/admin", "/badge", "/key")):
+            and not path.startswith(("/admin", "/badge", "/key", "/account")):
         try:
             from src import scopes as _scopes
             if not _scopes.allowed(key, path):
@@ -177,6 +179,73 @@ class RetroIn(BaseModel):
     smiles: str = Field(..., min_length=1)
     max_results: int = Field(20, ge=1, le=100)
 
+
+class FingerprintIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=50_000)
+    kind: str = Field("morgan", min_length=1)
+    n_bits: int = Field(2048, ge=64, le=8192)
+    radius: int = Field(2, ge=1, le=6)
+    output: str = Field("bits", min_length=1)
+
+
+class SimMatrixIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=2, max_length=500)
+
+
+class TautomerIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=1000)
+    max_tautomers: int = Field(100, ge=1, le=1000)
+
+
+class ClusterIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=2000)
+    cutoff: float = Field(0.4, ge=0.0, le=1.0)
+
+
+class FormulaIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
+
+
+class DescriptorsIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=5000)
+    names: List[str] | None = Field(default=None, max_length=300)
+
+
+class ConvertIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
+    input_format: str = Field("smiles", min_length=1)
+    with_molblock: bool = False
+
+
+class MCSIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=2, max_length=1000)
+    complete_rings_only: bool = False
+    ring_matches_ring_only: bool = False
+    timeout: int = Field(10, ge=1, le=60)
+
+
+class ChargesIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=1000)
+    include_hs: bool = False
+
+
+class AlertsIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=10_000)
+
+
+class StereoIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=1000)
+    max_isomers: int = Field(64, ge=1, le=1024)
+    only_unassigned: bool = True
+
+
+class Shape3DIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=500)
+
+
+class DedupIn(BaseModel):
+    smiles: List[str] = Field(..., min_length=1, max_length=50_000)
+
 class SubstructureIn(BaseModel):
     smarts: str = Field(..., min_length=1)
     smiles: List[str] = Field(..., min_length=1, max_length=100_000)
@@ -201,6 +270,18 @@ class ParquetIn(BaseModel):
 class CouponCheckIn(BaseModel):
     code: str
     tier: str
+
+
+class CheckoutSessionIn(BaseModel):
+    tier: str = Field(..., min_length=1)
+    success_url: str | None = None
+    cancel_url: str | None = None
+
+
+class PlayVerifyIn(BaseModel):
+    product_id: str = Field(..., min_length=1)
+    purchase_token: str = Field(..., min_length=1)
+    email: EmailStr | None = None
 
 
 class MagicLinkIn(BaseModel):
@@ -366,6 +447,33 @@ def similarity_search(body: SimilarityIn, request: Request,
             "quota_charged": CHARGE}
 
 
+@app.post("/similarity/matrix")
+def similarity_matrix(body: SimMatrixIn,
+                      x_api_key: str | None = Header(default=None)):
+    """Pairwise ECFP4 Tanimoto matrix among the supplied SMILES (2..500).
+
+    Returns the symmetric N×N matrix plus each row's nearest neighbor — the
+    primitive for clustering/dedup/SAR. Charges 1 SMILES/input molecule.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"simmatrix:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = simmatrix.compute(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/similarity/matrix", n)
+    return {**res.to_dict(), "quota_charged": n}
+
+
 # ---------------- admin endpoints (token-gated) ----------------
 
 @app.get("/admin/stats")
@@ -454,19 +562,47 @@ def predict_endpoint(body: PredictIn, x_api_key: str | None = Header(default=Non
     return {"results": results, "quota_charged": charge}
 
 
-    if not info:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return {
-        "tier": info.tier,
-        "used_this_month": keysdb.month_usage(x_api_key),
-        "monthly_quota": info.monthly_quota,
-        "active": info.active,
-    }
-
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+# ---------------- account: export + delete (GDPR / Play "delete my account") ----------------
+
+@app.get("/account/export")
+def account_export(x_api_key: str | None = Header(default=None)):
+    """Export all data held for the caller's account (GDPR portability)."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    return {
+        "account": {"email": info.email, "tier": info.tier,
+                    "monthly_quota": info.monthly_quota, "active": info.active},
+        "used_this_month": keysdb.month_usage(x_api_key),
+        "usage_by_day": usage_stats.daily_counts(x_api_key, days=365),
+        "usage_by_endpoint": usage_stats.endpoint_breakdown(x_api_key, days=365),
+        "recent_requests": audit.recent(x_api_key, limit=1000),
+    }
+
+
+@app.delete("/account")
+def account_delete(x_api_key: str | None = Header(default=None)):
+    """Permanently delete the caller's account and all associated data.
+
+    Irreversible. Removes every key under the same email plus usage, audit,
+    scopes, team memberships, webhooks, and referral data.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    if not keysdb.lookup(x_api_key):
+        raise HTTPException(status_code=401, detail="Invalid API key")
+    try:
+        result = keysdb.delete_account(x_api_key)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return {"deleted": True, **result}
 
 
 # ---------------- screening report ----------------
@@ -488,6 +624,96 @@ def screen_endpoint(body: ScreenIn, x_api_key: str | None = Header(default=None)
     report = screen.screen_batch(body.smiles)
     keysdb.record(x_api_key, "/screen", charge)
     return {**report, "quota_charged": charge}
+
+
+# ---------------- molecular formula / exact mass ----------------
+
+@app.post("/formula")
+def formula_endpoint(body: FormulaIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Molecular formula, exact (monoisotopic) + average mass, elemental
+    composition, and ring/double-bond equivalents. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"formula:{x_api_key}", limit=120, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = formula.compute_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/formula", n)
+    return {"results": results, "quota_charged": n}
+
+
+# ---------------- structural alerts ----------------
+
+@app.get("/alerts/catalogs")
+def alert_catalogs():
+    """Public: list the structural-alert catalogs screened (no auth)."""
+    return {"catalogs": list(alerts.CATALOG_NAMES)}
+
+
+@app.post("/alerts")
+def alerts_endpoint(body: AlertsIn,
+                    x_api_key: str | None = Header(default=None)):
+    """Structural-alert screen across PAINS A/B/C, BRENK, NIH, ZINC — reports
+    which alerts fire and from which catalog. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"alerts:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = alerts.screen_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/alerts", n)
+    return {"results": results, "quota_charged": n}
+
+
+# ---------------- full QSAR descriptor panel ----------------
+
+@app.get("/descriptors/names")
+def descriptor_names():
+    """Public: list every available RDKit 2D descriptor name (no auth)."""
+    return {"n": len(descriptors.ALL_NAMES), "names": list(descriptors.ALL_NAMES)}
+
+
+@app.post("/descriptors")
+def descriptors_endpoint(body: DescriptorsIn,
+                         x_api_key: str | None = Header(default=None)):
+    """Full RDKit 2D descriptor panel (~200 features) per molecule, or just the
+    requested `names` subset. NaN/inf come back as null. Charges 2 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"desc:{x_api_key}", limit=60, window=60.0)
+    charge = 2 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = descriptors.compute_batch(body.smiles, names=body.names)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/descriptors", charge)
+    return {"n": len(body.smiles), "results": results, "quota_charged": charge}
 
 
 # ---------------- async jobs ----------------
@@ -589,6 +815,33 @@ def conformers_endpoint(body: ConformerIn,
     return {**conf.to_dict(), "quota_charged": CHARGE}
 
 
+# ---------------- 3D shape descriptors ----------------
+
+@app.post("/shape3d")
+def shape3d_endpoint(body: Shape3DIn,
+                     x_api_key: str | None = Header(default=None)):
+    """3D shape descriptors (NPR1/NPR2, asphericity, radius of gyration, …) from
+    a generated conformer. Embedding failures degrade to success=false.
+    Charges 5 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"shape3d:{x_api_key}", limit=20, window=60.0)
+    charge = 5 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = shape3d.compute_batch(body.smiles)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/shape3d", charge)
+    return {"results": results, "quota_charged": charge}
+
+
 # ---------------- reaction enumeration ----------------
 
 @app.post("/react")
@@ -648,6 +901,118 @@ def standardize_endpoint(body: StandardizeIn,
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/standardize", n)
     return {"results": results, "quota_charged": n}
+
+
+# ---------------- tautomer enumeration ----------------
+
+@app.post("/tautomers")
+def tautomers_endpoint(body: TautomerIn,
+                       x_api_key: str | None = Header(default=None)):
+    """Enumerate a molecule's plausible tautomers + RDKit's canonical form.
+
+    The complement of /standardize (which collapses to one form). Charges 2
+    SMILES/molecule.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"taut:{x_api_key}", limit=30, window=60.0)
+    charge = 2 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = tautomers.enumerate_batch(body.smiles,
+                                            max_tautomers=body.max_tautomers)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/tautomers", charge)
+    return {"results": results, "quota_charged": charge}
+
+
+# ---------------- stereoisomer enumeration ----------------
+
+@app.post("/stereoisomers")
+def stereoisomers_endpoint(body: StereoIn,
+                           x_api_key: str | None = Header(default=None)):
+    """Enumerate distinct stereoisomers (expands undefined stereocenters /
+    double-bond geometry). Charges 2 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"stereo:{x_api_key}", limit=30, window=60.0)
+    charge = 2 * len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + charge > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = stereoisomers.enumerate_batch(
+            body.smiles, max_isomers=body.max_isomers,
+            only_unassigned=body.only_unassigned,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/stereoisomers", charge)
+    return {"results": results, "quota_charged": charge}
+
+
+# ---------------- identifier / format conversion ----------------
+
+@app.post("/convert")
+def convert_endpoint(body: ConvertIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Convert structures to canonical SMILES + InChI + InChIKey (+ optional
+    MolBlock). `input_format` is smiles (default) or inchi; with input_format
+    'inchi' the `smiles` field carries InChI strings. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"convert:{x_api_key}", limit=120, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = convert.convert_batch(
+            body.smiles, input_format=body.input_format,
+            with_molblock=body.with_molblock,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/convert", n)
+    return {"results": results, "quota_charged": n}
+
+
+# ---------------- dedup by InChIKey ----------------
+
+@app.post("/dedup")
+def dedup_endpoint(body: DedupIn,
+                   x_api_key: str | None = Header(default=None)):
+    """Collapse a SMILES list to unique structures by InChIKey, reporting which
+    input indices map to each. Charges 1 SMILES/input molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"dedup:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    res = dedup.dedup(body.smiles)
+    keysdb.record(x_api_key, "/dedup", n)
+    return {**res.to_dict(), "quota_charged": n}
 
 
 # ---------------- outbound webhooks ----------------
@@ -743,6 +1108,51 @@ def scaffolds_endpoint(body: ScaffoldIn,
     keysdb.record(x_api_key, "/scaffolds", n)
     return {"n_unique_scaffolds": len(rows),
             "scaffolds": [r.to_dict() for r in rows],
+            "quota_charged": n}
+
+
+# ---------------- molecular fingerprints ----------------
+
+@app.get("/fingerprints/kinds")
+def fingerprint_kinds():
+    """Public: list supported fingerprint kinds + defaults (no auth required)."""
+    return {
+        "kinds": list(fingerprints.KINDS),
+        "outputs": list(fingerprints.OUTPUTS),
+        "defaults": {"kind": "morgan", "n_bits": 2048, "radius": 2,
+                     "output": "bits"},
+        "notes": {
+            "morgan": "ECFP-style circular; radius 2 == ECFP4",
+            "maccs": "fixed 167-bit structural keys; n_bits/radius ignored",
+        },
+    }
+
+
+@app.post("/fingerprints")
+def fingerprints_endpoint(body: FingerprintIn,
+                          x_api_key: str | None = Header(default=None)):
+    """Molecular fingerprints (morgan/rdkit/atompair/torsion/maccs) returned as
+    on-bit indices and/or a base64 bit vector. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"fp:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = fingerprints.compute_batch(
+            body.smiles, kind=body.kind, n_bits=body.n_bits,
+            radius=body.radius, output=body.output,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/fingerprints", n)
+    return {"kind": body.kind.lower(), "n": n, "results": results,
             "quota_charged": n}
 
 
@@ -896,6 +1306,63 @@ def substructure_endpoint(body: SubstructureIn,
     }
 
 
+# ---------------- maximum common substructure ----------------
+
+@app.post("/mcs")
+def mcs_endpoint(body: MCSIn,
+                 x_api_key: str | None = Header(default=None)):
+    """Maximum Common Substructure shared by all input molecules (SMARTS +
+    SMILES + atom/bond counts). Charges 1 SMILES/input molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"mcs:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = mcs.find(
+            body.smiles,
+            complete_rings_only=body.complete_rings_only,
+            ring_matches_ring_only=body.ring_matches_ring_only,
+            timeout=body.timeout,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/mcs", n)
+    return {**res.to_dict(), "quota_charged": n}
+
+
+# ---------------- Gasteiger partial charges ----------------
+
+@app.post("/charges")
+def charges_endpoint(body: ChargesIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Gasteiger (PEOE) partial atomic charges per molecule. Heavy atoms by
+    default; set include_hs to include hydrogens. Charges 1 SMILES/molecule."""
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"charges:{x_api_key}", limit=60, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        results = charges.compute_batch(body.smiles, include_hs=body.include_hs)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/charges", n)
+    return {"results": results, "quota_charged": n}
+
+
 # ---------------- diversity picker ----------------
 
 @app.post("/diversity")
@@ -918,6 +1385,36 @@ def diversity_endpoint(body: DiversityIn,
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     keysdb.record(x_api_key, "/diversity", n)
+    return {**res.to_dict(), "quota_charged": n}
+
+
+# ---------------- Butina clustering ----------------
+
+@app.post("/cluster")
+def cluster_endpoint(body: ClusterIn,
+                     x_api_key: str | None = Header(default=None)):
+    """Butina clustering by ECFP4 Tanimoto distance (N<=2000).
+
+    `cutoff` is a DISTANCE threshold (1 - similarity); smaller = tighter
+    clusters. Returns clusters largest-first, each with a centroid. Charges 1
+    SMILES/input molecule.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="Missing x-api-key header")
+    info = keysdb.lookup(x_api_key)
+    if not info or not info.active:
+        raise HTTPException(status_code=401, detail="Invalid or inactive API key")
+    _rl(f"cluster:{x_api_key}", limit=20, window=60.0)
+    n = len(body.smiles)
+    used, quota = teams.effective_quota(x_api_key)
+    if used + n > quota:
+        raise HTTPException(status_code=402,
+                            detail=f"Quota would be exceeded ({used}/{quota})")
+    try:
+        res = clustering.cluster(body.smiles, cutoff=body.cutoff)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    keysdb.record(x_api_key, "/cluster", n)
     return {**res.to_dict(), "quota_charged": n}
 
 
@@ -1120,6 +1617,26 @@ def reference_page():
     raise HTTPException(status_code=404, detail="not found")
 
 
+def _serve_landing(filename: str):
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "landing" / filename
+    if p.exists():
+        return FileResponse(p, media_type="text/html")
+    raise HTTPException(status_code=404, detail="not found")
+
+
+@app.get("/privacy", include_in_schema=False)
+def privacy_page():
+    """Public privacy policy (stable URL for app stores / payment providers)."""
+    return _serve_landing("privacy.html")
+
+
+@app.get("/terms", include_in_schema=False)
+def terms_page():
+    """Public terms of service."""
+    return _serve_landing("terms.html")
+
+
 @app.get("/openapi-static.json", include_in_schema=False)
 def openapi_static():
     from fastapi.responses import FileResponse
@@ -1130,6 +1647,116 @@ def openapi_static():
 
 
 # ---------------- coupons (checkout helper) ----------------
+
+# Tier -> Stripe price env var (matches stripe_webhook.TIER_FROM_PRICE keys).
+_CHECKOUT_TIERS = {
+    "research": "STRIPE_PRICE_RESEARCH",
+    "commercial": "STRIPE_PRICE_COMMERCIAL",
+    "redistribution": "STRIPE_PRICE_REDISTRIBUTION",
+}
+
+
+@app.post("/billing/checkout")
+def billing_checkout(body: CheckoutSessionIn):
+    """Create a Stripe Checkout *subscription* session for a tier and return the
+    hosted-checkout URL. Public (the buyer has no key yet — the Stripe webhook
+    provisions + emails the key on payment). Returns 503 until Stripe is
+    configured, so the endpoint is safe to ship before keys are set.
+    """
+    tier = body.tier.lower()
+    env_var = _CHECKOUT_TIERS.get(tier)
+    if not env_var:
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown tier '{tier}'. Choose: {sorted(_CHECKOUT_TIERS)}")
+    price_id = os.getenv(env_var, f"price_{tier}")
+    try:
+        import stripe  # type: ignore
+    except Exception:
+        raise HTTPException(status_code=503,
+                            detail="Billing not configured (stripe library not installed)")
+    secret = os.getenv("STRIPE_SECRET_KEY")
+    if not secret:
+        raise HTTPException(status_code=503,
+                            detail="Billing not configured (STRIPE_SECRET_KEY unset)")
+    stripe.api_key = secret
+    base = os.getenv("QMOL_PUBLIC_URL", "https://qmol.app").rstrip("/")
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=body.success_url or f"{base}/portal.html?paid=1",
+            cancel_url=body.cancel_url or f"{base}/checkout.html",
+            allow_promotion_codes=True,
+        )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Stripe error: {e}")
+    return {"url": session.url, "id": session.id, "tier": tier}
+
+
+# Android Play product id -> tier. Google Play *requires* its own billing for
+# in-app digital purchases (Stripe is not permitted for Android IAP), so the
+# Android app buys via Play Billing and posts the purchase token here to verify.
+_PLAY_PRODUCTS = {
+    os.getenv("PLAY_PRODUCT_RESEARCH", "qmol_research_monthly"): "research",
+    os.getenv("PLAY_PRODUCT_COMMERCIAL", "qmol_commercial_monthly"): "commercial",
+}
+
+
+def _verify_play_purchase(package: str, product_id: str, token: str,
+                          service_account_json: str) -> bool:
+    """Return True if the Play subscription purchase token is valid + active.
+
+    Uses the Google Play Developer API. Kept behind the configuration/library
+    guards in the endpoint so the service runs fine before Play is set up.
+    """
+    import json as _json
+    from google.oauth2 import service_account  # type: ignore
+    from googleapiclient.discovery import build  # type: ignore
+
+    creds = service_account.Credentials.from_service_account_info(
+        _json.loads(service_account_json),
+        scopes=["https://www.googleapis.com/auth/androidpublisher"],
+    )
+    svc = build("androidpublisher", "v3", credentials=creds, cache_discovery=False)
+    res = svc.purchases().subscriptions().get(
+        packageName=package, subscriptionId=product_id, token=token,
+    ).execute()
+    # paymentState 1 = received; expiry in the future => active.
+    import time as _t
+    expiry_ms = int(res.get("expiryTimeMillis", 0))
+    return res.get("paymentState") in (1, 2) and expiry_ms > _t.time() * 1000
+
+
+@app.post("/billing/play/verify")
+def play_verify(body: PlayVerifyIn):
+    """Verify a Google Play subscription purchase (Android in-app billing) and
+    provision/return the API key. Returns 503 until Play credentials are set, so
+    it's safe to ship before the Android app exists."""
+    tier = _PLAY_PRODUCTS.get(body.product_id)
+    if not tier:
+        raise HTTPException(status_code=400,
+                            detail=f"Unknown product '{body.product_id}'")
+    package = os.getenv("ANDROID_PACKAGE_NAME")
+    sa = os.getenv("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON")
+    if not package or not sa:
+        raise HTTPException(
+            status_code=503,
+            detail="Play billing not configured (set ANDROID_PACKAGE_NAME + "
+                   "GOOGLE_PLAY_SERVICE_ACCOUNT_JSON)")
+    try:
+        ok = _verify_play_purchase(package, body.product_id, body.purchase_token, sa)
+    except ImportError:
+        raise HTTPException(status_code=503,
+                            detail="Play billing not configured (google-api-python-client not installed)")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"Play verification error: {e}")
+    if not ok:
+        raise HTTPException(status_code=402, detail="Purchase not valid or not active")
+    email = str(body.email) if body.email else f"play+{body.purchase_token[:12]}@qmol.app"
+    info = keysdb.provision(email, tier)
+    return {"api_key": info.key, "tier": info.tier,
+            "monthly_quota": info.monthly_quota}
+
 
 @app.post("/coupon/check")
 def coupon_check(body: CouponCheckIn):

@@ -4,6 +4,20 @@ Autonomous worker that continuously builds a quantum-verified molecular
 properties dataset and auto-publishes it to HuggingFace. Runs 24/7 on
 Windows with zero babysitting.
 
+## Two products in this repo
+
+Q-Mol ships two things on one RDKit compute core (`src/compute.py`):
+
+- **Dataset factory** (`worker.py`) — the 24/7 ingest → compute → store →
+  publish loop described below.
+- **Molecular-informatics API + CLI** (`api.py`, `cli.py`) — a key-gated
+  FastAPI service (~50 endpoints: descriptors, full QSAR panel, fingerprints,
+  similarity + pairwise matrix, Butina clustering, drug-likeness screening,
+  ADMET heuristics, formula/exact-mass, identifier conversion, tautomers,
+  conformers, reactions, scaffolds, diversity, async jobs, …) plus a local Typer
+  CLI. Run `uvicorn api:app` and open `/docs`, or `qmol --help`.
+  **Quickstart: [`docs/API.md`](docs/API.md)** · architecture tour: **`CLAUDE.md`**.
+
 ## What it does
 
 1. **Ingests** SMILES from PubChem (public, free).

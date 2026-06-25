@@ -10,7 +10,7 @@
     "license": {
       "name": "MIT (free tier) / Commercial (paid tiers)"
     },
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "paths": {
     "/": {
@@ -203,6 +203,61 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SimilarityIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/similarity/matrix": {
+      "post": {
+        "summary": "Similarity Matrix",
+        "description": "Pairwise ECFP4 Tanimoto matrix among the supplied SMILES (2..500).\n\nReturns the symmetric N\u00d7N matrix plus each row's nearest neighbor \u2014 the\nprimitive for clustering/dedup/SAR. Charges 1 SMILES/input molecule.",
+        "operationId": "similarity_matrix_similarity_matrix_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimMatrixIn"
               }
             }
           }
@@ -513,6 +568,96 @@
         }
       }
     },
+    "/account/export": {
+      "get": {
+        "summary": "Account Export",
+        "description": "Export all data held for the caller's account (GDPR portability).",
+        "operationId": "account_export_account_export_get",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account": {
+      "delete": {
+        "summary": "Account Delete",
+        "description": "Permanently delete the caller's account and all associated data.\n\nIrreversible. Removes every key under the same email plus usage, audit,\nscopes, team memberships, webhooks, and referral data.",
+        "operationId": "account_delete_account_delete",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/screen": {
       "post": {
         "summary": "Screen Endpoint",
@@ -542,6 +687,205 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ScreenIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/formula": {
+      "post": {
+        "summary": "Formula Endpoint",
+        "description": "Molecular formula, exact (monoisotopic) + average mass, elemental\ncomposition, and ring/double-bond equivalents. Charges 1 SMILES/molecule.",
+        "operationId": "formula_endpoint_formula_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FormulaIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alerts/catalogs": {
+      "get": {
+        "summary": "Alert Catalogs",
+        "description": "Public: list the structural-alert catalogs screened (no auth).",
+        "operationId": "alert_catalogs_alerts_catalogs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/alerts": {
+      "post": {
+        "summary": "Alerts Endpoint",
+        "description": "Structural-alert screen across PAINS A/B/C, BRENK, NIH, ZINC \u2014 reports\nwhich alerts fire and from which catalog. Charges 1 SMILES/molecule.",
+        "operationId": "alerts_endpoint_alerts_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertsIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/descriptors/names": {
+      "get": {
+        "summary": "Descriptor Names",
+        "description": "Public: list every available RDKit 2D descriptor name (no auth).",
+        "operationId": "descriptor_names_descriptors_names_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/descriptors": {
+      "post": {
+        "summary": "Descriptors Endpoint",
+        "description": "Full RDKit 2D descriptor panel (~200 features) per molecule, or just the\nrequested `names` subset. NaN/inf come back as null. Charges 2 SMILES/molecule.",
+        "operationId": "descriptors_endpoint_descriptors_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescriptorsIn"
               }
             }
           }
@@ -828,6 +1172,61 @@
         }
       }
     },
+    "/shape3d": {
+      "post": {
+        "summary": "Shape3D Endpoint",
+        "description": "3D shape descriptors (NPR1/NPR2, asphericity, radius of gyration, \u2026) from\na generated conformer. Embedding failures degrade to success=false.\nCharges 5 SMILES/molecule.",
+        "operationId": "shape3d_endpoint_shape3d_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Shape3DIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/react": {
       "post": {
         "summary": "React Endpoint",
@@ -929,6 +1328,226 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/StandardizeIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tautomers": {
+      "post": {
+        "summary": "Tautomers Endpoint",
+        "description": "Enumerate a molecule's plausible tautomers + RDKit's canonical form.\n\nThe complement of /standardize (which collapses to one form). Charges 2\nSMILES/molecule.",
+        "operationId": "tautomers_endpoint_tautomers_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TautomerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stereoisomers": {
+      "post": {
+        "summary": "Stereoisomers Endpoint",
+        "description": "Enumerate distinct stereoisomers (expands undefined stereocenters /\ndouble-bond geometry). Charges 2 SMILES/molecule.",
+        "operationId": "stereoisomers_endpoint_stereoisomers_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StereoIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convert": {
+      "post": {
+        "summary": "Convert Endpoint",
+        "description": "Convert structures to canonical SMILES + InChI + InChIKey (+ optional\nMolBlock). `input_format` is smiles (default) or inchi; with input_format\n'inchi' the `smiles` field carries InChI strings. Charges 1 SMILES/molecule.",
+        "operationId": "convert_endpoint_convert_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dedup": {
+      "post": {
+        "summary": "Dedup Endpoint",
+        "description": "Collapse a SMILES list to unique structures by InChIKey, reporting which\ninput indices map to each. Charges 1 SMILES/input molecule.",
+        "operationId": "dedup_endpoint_dedup_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DedupIn"
               }
             }
           }
@@ -1309,6 +1928,78 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ScaffoldIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fingerprints/kinds": {
+      "get": {
+        "summary": "Fingerprint Kinds",
+        "description": "Public: list supported fingerprint kinds + defaults (no auth required).",
+        "operationId": "fingerprint_kinds_fingerprints_kinds_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fingerprints": {
+      "post": {
+        "summary": "Fingerprints Endpoint",
+        "description": "Molecular fingerprints (morgan/rdkit/atompair/torsion/maccs) returned as\non-bit indices and/or a base64 bit vector. Charges 1 SMILES/molecule.",
+        "operationId": "fingerprints_endpoint_fingerprints_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FingerprintIn"
               }
             }
           }
@@ -1720,6 +2411,116 @@
         }
       }
     },
+    "/mcs": {
+      "post": {
+        "summary": "Mcs Endpoint",
+        "description": "Maximum Common Substructure shared by all input molecules (SMARTS +\nSMILES + atom/bond counts). Charges 1 SMILES/input molecule.",
+        "operationId": "mcs_endpoint_mcs_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MCSIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/charges": {
+      "post": {
+        "summary": "Charges Endpoint",
+        "description": "Gasteiger (PEOE) partial atomic charges per molecule. Heavy atoms by\ndefault; set include_hs to include hydrogens. Charges 1 SMILES/molecule.",
+        "operationId": "charges_endpoint_charges_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChargesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/diversity": {
       "post": {
         "summary": "Diversity Endpoint",
@@ -1749,6 +2550,61 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DiversityIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cluster": {
+      "post": {
+        "summary": "Cluster Endpoint",
+        "description": "Butina clustering by ECFP4 Tanimoto distance (N<=2000).\n\n`cutoff` is a DISTANCE threshold (1 - similarity); smaller = tighter\nclusters. Returns clusters largest-first, each with a centroid. Charges 1\nSMILES/input molecule.",
+        "operationId": "cluster_endpoint_cluster_post",
+        "parameters": [
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClusterIn"
               }
             }
           }
@@ -2277,6 +3133,80 @@
         }
       }
     },
+    "/billing/checkout": {
+      "post": {
+        "summary": "Billing Checkout",
+        "description": "Create a Stripe Checkout *subscription* session for a tier and return the\nhosted-checkout URL. Public (the buyer has no key yet \u2014 the Stripe webhook\nprovisions + emails the key on payment). Returns 503 until Stripe is\nconfigured, so the endpoint is safe to ship before keys are set.",
+        "operationId": "billing_checkout_billing_checkout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSessionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing/play/verify": {
+      "post": {
+        "summary": "Play Verify",
+        "description": "Verify a Google Play subscription purchase (Android in-app billing) and\nprovision/return the API key. Returns 503 until Play credentials are set, so\nit's safe to ship before the Android app exists.",
+        "operationId": "play_verify_billing_play_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayVerifyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/coupon/check": {
       "post": {
         "summary": "Coupon Check",
@@ -2391,6 +3321,24 @@
   },
   "components": {
     "schemas": {
+      "AlertsIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "AlertsIn"
+      },
       "Body_upload_compute_upload_compute_post": {
         "properties": {
           "file": {
@@ -2404,6 +3352,90 @@
           "file"
         ],
         "title": "Body_upload_compute_upload_compute_post"
+      },
+      "ChargesIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "include_hs": {
+            "type": "boolean",
+            "title": "Include Hs",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ChargesIn"
+      },
+      "CheckoutSessionIn": {
+        "properties": {
+          "tier": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tier"
+          },
+          "success_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success Url"
+          },
+          "cancel_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tier"
+        ],
+        "title": "CheckoutSessionIn"
+      },
+      "ClusterIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "cutoff": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Cutoff",
+            "default": 0.4
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ClusterIn"
       },
       "ComputeIn": {
         "properties": {
@@ -2443,6 +3475,35 @@
         ],
         "title": "ConformerIn"
       },
+      "ConvertIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "input_format": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Input Format",
+            "default": "smiles"
+          },
+          "with_molblock": {
+            "type": "boolean",
+            "title": "With Molblock",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "ConvertIn"
+      },
       "CouponCheckIn": {
         "properties": {
           "code": {
@@ -2460,6 +3521,57 @@
           "tier"
         ],
         "title": "CouponCheckIn"
+      },
+      "DedupIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "DedupIn"
+      },
+      "DescriptorsIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 5000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "DescriptorsIn"
       },
       "DiversityIn": {
         "properties": {
@@ -2490,6 +3602,68 @@
           "smiles"
         ],
         "title": "DiversityIn"
+      },
+      "FingerprintIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Kind",
+            "default": "morgan"
+          },
+          "n_bits": {
+            "type": "integer",
+            "maximum": 8192.0,
+            "minimum": 64.0,
+            "title": "N Bits",
+            "default": 2048
+          },
+          "radius": {
+            "type": "integer",
+            "maximum": 6.0,
+            "minimum": 1.0,
+            "title": "Radius",
+            "default": 2
+          },
+          "output": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Output",
+            "default": "bits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "FingerprintIn"
+      },
+      "FormulaIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "FormulaIn"
       },
       "HTTPValidationError": {
         "properties": {
@@ -2522,6 +3696,41 @@
         ],
         "title": "JobSubmitIn"
       },
+      "MCSIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 2,
+            "title": "Smiles"
+          },
+          "complete_rings_only": {
+            "type": "boolean",
+            "title": "Complete Rings Only",
+            "default": false
+          },
+          "ring_matches_ring_only": {
+            "type": "boolean",
+            "title": "Ring Matches Ring Only",
+            "default": false
+          },
+          "timeout": {
+            "type": "integer",
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Timeout",
+            "default": 10
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "MCSIn"
+      },
       "MagicLinkIn": {
         "properties": {
           "email": {
@@ -2553,6 +3762,38 @@
           "smiles"
         ],
         "title": "ParquetIn"
+      },
+      "PlayVerifyIn": {
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Product Id"
+          },
+          "purchase_token": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Purchase Token"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "product_id",
+          "purchase_token"
+        ],
+        "title": "PlayVerifyIn"
       },
       "PredictIn": {
         "properties": {
@@ -2713,6 +3954,24 @@
         ],
         "title": "SdfDownloadIn"
       },
+      "Shape3DIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "Shape3DIn"
+      },
       "SignupIn": {
         "properties": {
           "email": {
@@ -2726,6 +3985,24 @@
           "email"
         ],
         "title": "SignupIn"
+      },
+      "SimMatrixIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 2,
+            "title": "Smiles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "SimMatrixIn"
       },
       "SimilarityIn": {
         "properties": {
@@ -2773,6 +4050,36 @@
         ],
         "title": "StandardizeIn"
       },
+      "StereoIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "max_isomers": {
+            "type": "integer",
+            "maximum": 1024.0,
+            "minimum": 1.0,
+            "title": "Max Isomers",
+            "default": 64
+          },
+          "only_unassigned": {
+            "type": "boolean",
+            "title": "Only Unassigned",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "StereoIn"
+      },
       "SubstructureIn": {
         "properties": {
           "smarts": {
@@ -2803,6 +4110,31 @@
           "smiles"
         ],
         "title": "SubstructureIn"
+      },
+      "TautomerIn": {
+        "properties": {
+          "smiles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Smiles"
+          },
+          "max_tautomers": {
+            "type": "integer",
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Max Tautomers",
+            "default": 100
+          }
+        },
+        "type": "object",
+        "required": [
+          "smiles"
+        ],
+        "title": "TautomerIn"
       },
       "TeamCreateIn": {
         "properties": {

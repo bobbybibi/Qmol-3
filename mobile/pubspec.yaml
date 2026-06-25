@@ -1,0 +1,25 @@
+name: qmol
+description: Q-Mol — molecular descriptors & cheminformatics on the go.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  # Google Play Billing. in_app_purchase 3.2+ ships Billing Library 7,
+  # which satisfies Play's "Billing Library 7.0.0+" policy.
+  in_app_purchase: ^3.2.0
+  in_app_purchase_android: ^0.3.6
+  shared_preferences: ^2.2.0
+  url_launcher: ^6.2.0
+
+dev_dependencies:
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

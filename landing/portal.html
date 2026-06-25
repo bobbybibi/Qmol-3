@@ -26,6 +26,8 @@
       <input id="key" placeholder="qmol_..." style="flex:1;min-width:300px;" />
       <button onclick="loadAll()">Load</button>
       <button class="secondary" onclick="logout()">Forget key</button>
+      <button class="secondary" onclick="exportData()">Export my data</button>
+      <button class="secondary" onclick="deleteAccount()">Delete account</button>
     </div>
   </div>
 
@@ -113,6 +115,28 @@ function logout() {
   localStorage.removeItem("qmol_key");
   keyInput.value = "";
   document.getElementById("status").innerHTML = "";
+}
+
+async function exportData() {
+  if (!keyInput.value.trim()) { alert("Enter your API key"); return; }
+  const r = await api("/account/export");
+  if (!r.ok) { alert("Export failed: " + (r.body.detail || r.status)); return; }
+  const blob = new Blob([JSON.stringify(r.body, null, 2)], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "qmol-account-export.json";
+  a.click();
+}
+
+async function deleteAccount() {
+  if (!keyInput.value.trim()) { alert("Enter your API key"); return; }
+  if (!confirm("Permanently delete your account and ALL data? This cannot be undone.")) return;
+  const r = await api("/account", {method: "DELETE"});
+  if (!r.ok) { alert("Delete failed: " + (r.body.detail || r.status)); return; }
+  localStorage.removeItem("qmol_key");
+  keyInput.value = "";
+  document.getElementById("status").innerHTML = "<div class='card'>Account deleted.</div>";
+  alert("Your account and data have been deleted.");
 }
 
 if (keyInput.value) loadAll();

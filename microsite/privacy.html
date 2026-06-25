@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Q-Mol — Privacy Policy</title>
+<link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+<header class="nav"><div class="container">
+  <a class="brand" href="index.html" style="color:inherit"><span class="dot"></span> Q-Mol</a>
+  <nav><a href="index.html">Home</a> <a href="terms.html">Terms</a></nav>
+</div></header>
+
+<main class="container doc">
+  <h1>Privacy Policy</h1>
+  <p style="color:var(--muted)">Last updated: 2026-06-25. Q-Mol is operated by Photon Bounce
+    ("we"). Contact: <a href="mailto:privacy@photon-bounce.com">privacy@photon-bounce.com</a>.</p>
+
+  <p>This policy explains what data the Q-Mol website, API, CLI, and Android app collect, why,
+     and your choices. <strong>We sell software, not your data.</strong></p>
+
+  <h2>1. Data we collect</h2>
+  <table>
+    <tr><th>Data</th><th>Why</th><th>Kept</th></tr>
+    <tr><td>Email address</td><td>Issue/recover your API key, billing</td><td>Until you delete your account</td></tr>
+    <tr><td>API key</td><td>Authenticate requests, enforce quota</td><td>Until rotated/deleted</td></tr>
+    <tr><td>Usage metadata (endpoint, counts, timestamps, IP, status)</td><td>Quota/billing, rate-limiting, abuse prevention</td><td>Up to 13 months</td></tr>
+    <tr><td>Molecular structures you submit</td><td>Only to compute and return your result</td><td>See §3</td></tr>
+    <tr><td>Payment info</td><td>Processed by Stripe / Google Play — we never see card numbers</td><td>Held by the processor</td></tr>
+    <tr><td>Cookies / ad identifiers</td><td>Basic analytics and, if you consent, advertising</td><td>See §4</td></tr>
+  </table>
+
+  <h2>2. How we use it</h2>
+  <p>To provide and bill the service, prevent abuse, keep it reliable, and contact you about your
+     account. We do <strong>not</strong> use your submitted structures to build or sell datasets.</p>
+
+  <h2>3. Your molecular structures</h2>
+  <p>Structures you submit are processed to return results. We cache <em>derived results</em>
+     (keyed by a structure hash) for speed; async-job inputs/outputs are stored temporarily for
+     download, then deleted. <strong>We do not sell, license, or share your submitted structures.</strong></p>
+
+  <h2>4. Cookies &amp; advertising</h2>
+  <p>This website uses a cookie to remember your consent choice and for basic analytics. If you
+     <strong>accept</strong> on the cookie banner, we may show ads via <strong>Google AdSense</strong>,
+     which uses cookies/identifiers to serve and measure ads, including personalized ads where
+     permitted. If you decline, no advertising scripts are loaded. You can change your choice by
+     clearing site data. Learn more at
+     <a href="https://policies.google.com/technologies/ads">Google's advertising policies</a>, and
+     opt out of personalized ads at
+     <a href="https://www.google.com/settings/ads">Google Ad Settings</a>. The Android app does not
+     show ads unless stated in its store listing.</p>
+
+  <h2>5. Sharing / third parties</h2>
+  <p>Service providers only: a cloud host, Stripe (payments), Google Play Billing (Android),
+     an email provider, and — if you consent — Google AdSense. We do not sell personal data.</p>
+
+  <h2>6. Your rights</h2>
+  <p>Access, export, rotate your key, or delete your account and data anytime — in the app
+     (Account → Delete), via <code>DELETE /account</code>, or by emailing
+     <a href="mailto:privacy@photon-bounce.com">privacy@photon-bounce.com</a>. Depending on your
+     location (GDPR/CCPA) you may have additional rights.</p>
+
+  <h2>7. Security, retention &amp; children</h2>
+  <p>Data is encrypted in transit (HTTPS) and kept only as long as needed. Q-Mol is a
+     professional/research tool not directed to children under 13.</p>
+
+  <h2>8. Changes</h2>
+  <p>We'll update this page and the date above when practices change.</p>
+
+  <p style="color:var(--muted);margin-top:30px">This template reflects Q-Mol's real data flows;
+    have it reviewed by counsel before commercial launch.</p>
+</main>
+
+<footer><div class="container">
+  <div>© 2026 Photon Bounce · Q-Mol</div>
+  <div><a href="index.html">Home</a> · <a href="terms.html">Terms</a></div>
+</div></footer>
+</body>
+</html>

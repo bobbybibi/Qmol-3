@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Q-Mol — molecular descriptors & cheminformatics, on the go</title>
+<meta name="description" content="Compute molecular descriptors, fingerprints, similarity, ADMET and more — via the Q-Mol API, CLI, and Android app. Free tier, no card." />
+<meta property="og:title" content="Q-Mol — cheminformatics for chemists & ML" />
+<meta property="og:description" content="Descriptors, fingerprints, similarity, screening, ADMET — API + Android app." />
+<meta property="og:type" content="website" />
+<link rel="preconnect" href="https://qua-22p1.onrender.com" />
+<link rel="stylesheet" href="assets/styles.css" />
+
+<!--
+  GOOGLE ADSENSE — when you're ready to run ads:
+  1) Replace ca-pub-XXXXXXXXXXXXXXXX below with your AdSense publisher id.
+  2) Put your ads.txt at the DOMAIN ROOT (not /qmol) — see assets/ads.txt.
+  The script is intentionally NOT loaded until the visitor accepts cookies
+  (see the consent banner at the bottom) so the site is privacy-compliant.
+-->
+<meta name="google-adsense-account" content="ca-pub-XXXXXXXXXXXXXXXX" />
+</head>
+<body>
+
+<header class="nav">
+  <div class="container">
+    <div class="brand"><span class="dot"></span> Q-Mol</div>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#app">App</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://qua-22p1.onrender.com/reference">API</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="container">
+      <h1>Cheminformatics that fits<br /><span class="grad">in your pocket.</span></h1>
+      <p class="sub">Compute molecular descriptors, fingerprints, similarity, drug-likeness
+        and ADMET — from a SMILES string. Use the API, the CLI, or the Android app.
+        Free tier, no credit card.</p>
+      <div class="cta-row">
+        <a class="play-badge" href="#app"><span>▶</span><span><small>Get it on</small><b>Google Play</b></span></a>
+        <a class="btn primary" href="https://qua-22p1.onrender.com/app">Get a free API key</a>
+        <a class="btn ghost" href="https://qua-22p1.onrender.com/reference">Browse the API</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ad slot (renders only after consent; see bottom) -->
+  <div class="container"><div class="ad-slot" data-ad>Ad space</div></div>
+
+  <section id="features">
+    <div class="container">
+      <h2 class="section">Everything a chemist needs from a structure</h2>
+      <p class="lead">One SMILES in, a full property panel out — backed by RDKit.</p>
+      <div class="grid">
+        <div class="card"><h3>Descriptors</h3><p>The full ~217 RDKit 2D panel — MW, logP, TPSA, QED, and more, or a named subset.</p></div>
+        <div class="card"><h3>Fingerprints</h3><p>Morgan/ECFP, MACCS, RDKit, AtomPair, Torsion — as on-bits or base64.</p></div>
+        <div class="card"><h3>Similarity & clustering</h3><p>Pairwise Tanimoto matrices, Butina clustering, MCS, and diversity picks.</p></div>
+        <div class="card"><h3>Drug-likeness & ADMET</h3><p>Lipinski/Veber/PAINS screening plus logS/BBB/hERG/GI heuristics.</p></div>
+        <div class="card"><h3>3D & shape</h3><p>Conformers and shape descriptors (NPR1/NPR2, radius of gyration).</p></div>
+        <div class="card"><h3>Identifiers</h3><p>Canonical SMILES, InChI, InChIKey, MolBlock — and de-duplication.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="app" style="background:linear-gradient(180deg,transparent,rgba(56,189,248,.05));">
+    <div class="container">
+      <div class="split">
+        <div>
+          <h2 class="section" style="text-align:left">The Q-Mol app</h2>
+          <p style="color:var(--muted)">Run descriptors on the go, manage your subscription with
+            Google Play Billing, and control your data — export or delete your account anytime,
+            right from the app.</p>
+          <ul style="color:var(--muted)">
+            <li>Free key, then upgrade with an in-app subscription</li>
+            <li>Your molecules stay yours — we never sell submitted structures</li>
+            <li>Privacy-first: minimal permissions, clear data controls</li>
+          </ul>
+          <div class="cta-row" style="justify-content:flex-start">
+            <a class="play-badge" href="#"><span>▶</span><span><small>Get it on</small><b>Google Play</b></span></a>
+          </div>
+          <p style="color:var(--muted);font-size:13px">Coming soon to Google Play.</p>
+        </div>
+        <div>
+          <img class="shot" src="assets/shot-dashboard.png" alt="Q-Mol usage dashboard" loading="lazy" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="container">
+      <h2 class="section">Simple pricing</h2>
+      <p class="lead">Start free. Pay only when you scale.</p>
+      <div class="price">
+        <div class="tier"><h3>Free</h3><div class="amt">$0</div>
+          <ul><li>500 molecules / month</li><li>No credit card</li><li>Core endpoints</li></ul></div>
+        <div class="tier feat"><h3>Research</h3><div class="amt">$49<span>/mo</span></div>
+          <ul><li>10,000 / month</li><li>All endpoints</li><li>Audit + CSV export</li></ul></div>
+        <div class="tier"><h3>Commercial</h3><div class="amt">$299<span>/mo</span></div>
+          <ul><li>100,000 / month</li><li>Teams + webhooks</li><li>Commercial license</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="container"><div class="ad-slot" data-ad>Ad space</div></div>
+</main>
+
+<footer>
+  <div class="container">
+    <div>© 2026 Photon Bounce · Q-Mol. Descriptors via RDKit; source structures from PubChem (public domain).</div>
+    <div><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="mailto:hi@photon-bounce.com">Contact</a></div>
+  </div>
+</footer>
+
+<!-- Cookie / ads consent -->
+<div id="consent">
+  <div class="container">
+    <p>We use cookies for basic analytics, and — if you accept — personalized ads via Google.
+      See our <a href="privacy.html">Privacy Policy</a>.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn ghost" onclick="qmConsent(false)">Decline</button>
+      <button class="btn primary" onclick="qmConsent(true)">Accept</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the banner until a choice is stored.
+  (function () {
+    var choice = localStorage.getItem('qm_consent');
+    if (!choice) document.getElementById('consent').classList.add('show');
+    else if (choice === 'yes') loadAds();
+  })();
+
+  function qmConsent(accept) {
+    localStorage.setItem('qm_consent', accept ? 'yes' : 'no');
+    document.getElementById('consent').classList.remove('show');
+    if (accept) loadAds();
+  }
+
+  // Loads Google AdSense only after consent. Replace the publisher id first.
+  function loadAds() {
+    var PUB = 'ca-pub-XXXXXXXXXXXXXXXX';
+    if (PUB.indexOf('X') !== -1) return; // not configured yet — leave placeholders
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + PUB;
+    s.crossOrigin = 'anonymous';
+    document.head.appendChild(s);
+    document.querySelectorAll('[data-ad]').forEach(function (el) {
+      el.innerHTML = '<ins class="adsbygoogle" style="display:block;width:100%" data-ad-client="'
+        + PUB + '" data-ad-slot="0000000000" data-ad-format="auto" data-full-width-responsive="true"></ins>';
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    });
+  }
+</script>
+</body>
+</html>
