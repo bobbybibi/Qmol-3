@@ -9,17 +9,24 @@ name: deploy-microsite
 # Optionally override FTP_SERVER / FTP_USERNAME as repo *variables* if they change.
 
 on:
+  # Deploy to production on merge to main, or on demand from any branch.
   push:
-    branches: [main, master, claude/epic-mendel-a7r40z]
+    branches: [main, master]
     paths: ["microsite/**", ".github/workflows/deploy-microsite.yml"]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+      - name: Skip if FTP not configured
+        if: ${{ env.FTP_PASSWORD == '' }}
+        run: echo "FTP_PASSWORD secret not set — skipping deploy. Add it in Settings → Secrets and variables → Actions."
       - name: Deploy microsite to FTP /qmol
+        if: ${{ env.FTP_PASSWORD != '' }}
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ vars.FTP_SERVER || 'ftp.photon-bounce.com' }}

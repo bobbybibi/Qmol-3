@@ -18,14 +18,18 @@ microsite/
 ## Deploy — automatic (recommended)
 
 `.github/workflows/deploy-microsite.yml` uploads this folder to the FTP `/qmol`
-directory on every push that touches `microsite/`. One-time setup:
+directory. It runs on **push to `main`** (i.e. after this PR merges) or **on
+demand** (Actions → deploy-microsite → Run workflow) from any branch. One-time
+setup:
 
 1. Repo → **Settings → Secrets and variables → Actions → New repository secret**
    - name: `FTP_PASSWORD`  · value: *(your FTP password)*
-2. (Optional) add repo **variables** `FTP_SERVER` / `FTP_USERNAME` to override the
-   defaults (`ftp.photon-bounce.com` / `photonb`).
-3. Push, or run the workflow manually (Actions → deploy-microsite → Run workflow).
+2. (Optional) repo **variables**: `FTP_SERVER` / `FTP_USERNAME` to override the
+   defaults (`ftp.photon-bounce.com` / `photonb`), and `FTP_PROTOCOL` (`ftps`
+   default; set `ftp` if your host only supports plain FTP).
+3. Merge to `main`, or trigger the workflow manually.
 
+If `FTP_PASSWORD` isn't set, the job **skips** (stays green) instead of failing.
 The password lives only in the GitHub secret — never in the repo.
 
 ## Deploy — manual
