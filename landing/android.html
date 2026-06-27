@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Q-Mol for Android — Molecular Data in Your Pocket</title>
+<meta name="description" content="Q-Mol Android app — compute molecular descriptors, search by structure, and browse your quota on the go. Download the debug APK or wait for Google Play." />
+<style>
+  :root { --bg:#0b1020; --fg:#e7ecf3; --accent:#6cf; --muted:#8a95a8; --card:#121a2e; --border:#22314e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,Segoe UI,Roboto,Arial,sans-serif; }
+  a { color:var(--accent); }
+  .wrap { max-width:860px; margin:0 auto; padding:48px 24px; }
+  .badge { display:inline-flex; align-items:center; gap:6px; background:#0a1a10; border:1px solid #2a6; color:#4cf; padding:4px 12px; border-radius:20px; font-size:13px; margin-bottom:18px; }
+  h1 { font-size:38px; margin:0 0 10px; letter-spacing:-0.02em; }
+  h2 { font-size:20px; margin:36px 0 10px; }
+  .lead { color:var(--muted); font-size:18px; margin:0 0 28px; }
+  .cta { display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#001; padding:14px 22px; border-radius:10px; font-weight:700; text-decoration:none; font-size:16px; margin:6px 8px 6px 0; }
+  .cta.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .cta.disabled { background:#22314e; color:#8a95a8; cursor:not-allowed; pointer-events:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin:18px 0; }
+  .card { background:var(--card); padding:18px; border-radius:12px; border:1px solid var(--border); }
+  .card h3 { margin:0 0 6px; font-size:15px; color:var(--accent); }
+  .card p { margin:0; color:var(--muted); font-size:14px; }
+  .phone-mock { display:flex; justify-content:center; margin:32px 0; }
+  .phone { width:200px; background:#0b1020; border:2px solid var(--border); border-radius:28px; padding:24px 12px 20px; box-shadow:0 4px 40px #000a; }
+  .phone-screen { background:var(--card); border-radius:16px; height:340px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; border:1px solid var(--border); }
+  .phone-screen .icon { font-size:40px; }
+  .phone-screen .label { font-size:11px; color:var(--muted); }
+  .steps { list-style:none; padding:0; margin:0; counter-reset:step; }
+  .steps li { counter-increment:step; display:flex; gap:14px; margin-bottom:18px; }
+  .steps li::before { content:counter(step); flex-shrink:0; width:28px; height:28px; border-radius:50%; background:var(--accent); color:#001; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; margin-top:2px; }
+  .steps li p { margin:0 0 4px; font-weight:600; }
+  .steps li small { color:var(--muted); font-size:13px; }
+  .warning-box { background:#1a1000; border:1px solid #a60; padding:14px 18px; border-radius:10px; color:#fc9; font-size:14px; margin:18px 0; }
+  .play-badge { display:inline-flex; align-items:center; gap:10px; border:1px solid var(--border); border-radius:10px; padding:10px 16px; font-size:14px; color:var(--muted); margin-top:8px; }
+  .play-badge span { font-size:28px; }
+  code { background:#1a2440; padding:2px 6px; border-radius:4px; font-size:13px; }
+  footer { color:var(--muted); font-size:13px; margin-top:56px; border-top:1px solid var(--border); padding-top:20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="badge">📱 Android Client</div>
+  <h1>Q-Mol for Android</h1>
+  <p class="lead">Molecular descriptor computation, drug-likeness screening, and similarity search — on your phone.</p>
+
+  <a class="cta" id="apk-btn" href="qmol-android.apk" download>
+    ⬇ Download Debug APK
+  </a>
+  <a class="cta secondary" href="index.html">← Back to web app</a>
+
+  <div class="warning-box">
+    <strong>⚠ Debug build</strong> — This is an early developer build for testers and early adopters.
+    You will need to enable <strong>Install unknown apps</strong> in Android Settings before installing.
+    Your data stays private — the app only contacts the Q-Mol API over HTTPS.
+  </div>
+
+  <!-- Phone mock -->
+  <div class="phone-mock">
+    <div class="phone">
+      <div class="phone-screen">
+        <div class="icon">🧬</div>
+        <div style="font-size:18px;font-weight:700;color:#6cf;">Q-Mol</div>
+        <div class="label">Molecular Intelligence</div>
+        <div style="margin-top:12px;width:80%;height:2px;background:#22314e;border-radius:2px;"></div>
+        <div class="label" style="font-size:10px;">Loading descriptors…</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>What the app does</h2>
+  <div class="grid">
+    <div class="card"><h3>🔬 Compute descriptors</h3><p>Type or paste a SMILES string and get MW, logP, TPSA, QED, Lipinski, HOMO/LUMO — instantly via the cloud API.</p></div>
+    <div class="card"><h3>💊 Drug-likeness screen</h3><p>Run Lipinski, Veber, and PAINS filters. See which rules pass or fail at a glance.</p></div>
+    <div class="card"><h3>🔎 Similarity search</h3><p>Find structurally similar molecules in the Q-Mol dataset using ECFP4 fingerprints.</p></div>
+    <div class="card"><h3>📊 Usage dashboard</h3><p>See your API quota, monthly usage by endpoint, and referral earnings — from anywhere.</p></div>
+    <div class="card"><h3>🧪 Batch upload</h3><p>Upload a CSV of SMILES from your phone's storage and queue a batch compute job.</p></div>
+    <div class="card"><h3>📥 Offline results</h3><p>Export your last compute results to CSV for offline use and sharing.</p></div>
+  </div>
+
+  <h2>How to install</h2>
+  <ol class="steps">
+    <li>
+      <div>
+        <p>Download the APK</p>
+        <small>Tap the "Download Debug APK" button above. Your browser will save the file.</small>
+      </div>
+    </li>
+    <li>
+      <div>
+        <p>Allow unknown sources</p>
+        <small>Go to <strong>Settings → Apps → Special app access → Install unknown apps</strong> and allow your browser or file manager.</small>
+      </div>
+    </li>
+    <li>
+      <div>
+        <p>Tap the downloaded file</p>
+        <small>Open your downloads folder and tap <code>qmol-android.apk</code> to begin installation.</small>
+      </div>
+    </li>
+    <li>
+      <div>
+        <p>Sign in with your API key</p>
+        <small>Use the API key you received when you <a href="index.html#sample">signed up</a> or <a href="checkout.html">subscribed</a>.</small>
+      </div>
+    </li>
+  </ol>
+
+  <h2>Requirements</h2>
+  <ul style="color:var(--muted);font-size:15px;line-height:2;">
+    <li>Android 7.0 (API 24) or newer</li>
+    <li>Internet connection (computation happens in the cloud)</li>
+    <li>A free or paid Q-Mol API key</li>
+    <li>≈ 6 MB storage for the app</li>
+  </ul>
+
+  <h2>Coming to Google Play</h2>
+  <p style="color:var(--muted);">We are preparing the full production release for the Google Play Store. In the meantime, use the debug APK above — it's fully functional.</p>
+  <div class="play-badge">
+    <span>▶</span>
+    <div>
+      <div style="font-size:11px;color:#8a95a8;">Get it on</div>
+      <div style="font-weight:700;color:#e7ecf3;">Google Play — <em>Coming Soon</em></div>
+    </div>
+  </div>
+
+  <h2>For developers</h2>
+  <p style="color:var(--muted);">The Android app is open source and lives in the <code>android/</code> folder of the <a href="https://github.com/bobbybibi/Qmol-3" target="_blank" rel="noopener">GitHub repository</a>. It is a native WebView wrapper around the Q-Mol web app. Pull requests welcome.</p>
+  <pre style="background:#121a2e;padding:14px;border-radius:10px;border:1px solid #22314e;font-size:13px;overflow:auto;">git clone https://github.com/bobbybibi/Qmol-3.git
+cd Qmol-3/android
+./gradlew assembleDebug
+# APK → app/build/outputs/apk/debug/app-debug.apk</pre>
+
+  <footer>
+    Q-Mol Android &middot; <a href="index.html">Web app</a> &middot; <a href="portal.html">Customer portal</a> &middot; <a href="docs.html">API docs</a><br>
+    <span id="footer-contact">Questions? <a href="mailto:hi@qmol.app">hi@qmol.app</a></span>
+  </footer>
+</div>
+
+<script>
+  // Dynamically check if the APK file exists on the server
+  (async () => {
+    try {
+      const API = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+      const r = await fetch(API + "/public-config");
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.contact_email) {
+          document.getElementById("footer-contact").innerHTML =
+            'Questions? <a href="mailto:' + cfg.contact_email + '">' + cfg.contact_email + '</a>';
+        }
+      }
+    } catch (_) {}
+  })();
+</script>
+</body>
+</html>

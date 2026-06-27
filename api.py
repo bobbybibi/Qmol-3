@@ -1206,12 +1206,14 @@ def create_checkout_session(body: CheckoutSessionIn, request: Request):
         from stripe_checkout import create_session
         result = create_session(body.price_id, coupon_code=body.coupon_code)
         return {"url": result["url"]}
-    except KeyError as exc:
-        raise HTTPException(status_code=400,
-                            detail=f"Missing server config: {exc}. "
-                                   f"Set STRIPE_SECRET_KEY and STRIPE_PRICE_* env vars.")
-    except Exception as exc:  # noqa: BLE001
+    except KeyError:
+        raise HTTPException(status_code=503,
+                            detail="Payment service not configured. Contact support.")
+    except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+    except Exception:  # noqa: BLE001
+        raise HTTPException(status_code=503,
+                            detail="Payment service temporarily unavailable. Try again shortly.")
 
 
 # ── Stripe webhook ─────────────────────────────────────────────────────────────
@@ -1265,6 +1267,6 @@ def docs_page():
     return _html_route("docs.html")
 
 
-@app.get("/admin.html", include_in_schema=False)
-def admin_html_page():
-    return _html_route("admin.html")
+@app.get("/android.html", include_in_schema=False)
+def android_page():
+    return _html_route("android.html")
