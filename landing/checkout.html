@@ -42,6 +42,13 @@
   <h1>Q-Mol Subscription</h1>
   <p class="sub-head">Monthly API access + dataset downloads. Cancel any time.</p>
 
+  <div id="stripe-notice" style="display:none; background:#1a1a0a; border:1px solid #a86; padding:14px 16px; border-radius:10px; margin-bottom:16px; color:#fc6; font-size:14px;">
+    ⚠️ <strong>Payment processing is temporarily unavailable.</strong><br>
+    Our payment provider is performing verification. In the meantime, you can still
+    <a href="index.html#sample" style="color:#6cf;">get a free API key</a> (500 SMILES/month)
+    or <a href="mailto:hi@qmol.app" style="color:#6cf;">contact us</a> for manual invoicing.
+  </div>
+
   <div class="tier selected" data-price="price_research">
     <div>
       <div class="name">Research</div>
@@ -89,6 +96,14 @@
     const r = await fetch(API + "/public-config");
     if (r.ok) cfg = await r.json();
   } catch (_) {}
+
+  // Show notice if Stripe is not configured
+  const stripeAvailable = !!(cfg.stripe_publishable_key);
+  if (!stripeAvailable) {
+    document.getElementById("stripe-notice").style.display = "block";
+    document.getElementById("pay").textContent = "Payments temporarily unavailable";
+    document.getElementById("pay").disabled = true;
+  }
 
   // Check for success redirect from Stripe
   if (new URLSearchParams(location.search).get("success") === "1") {
