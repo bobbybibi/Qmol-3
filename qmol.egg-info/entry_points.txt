@@ -1,0 +1,2 @@
+[console_scripts]
+qmol = cli:main
