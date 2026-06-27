@@ -1,7 +1,8 @@
 # .htaccess for cPanel deployment of Q-Mol
 # Copy this file to public_html/qmol/.htaccess (or wherever your app is mounted)
 #
-# This tells Apache/LiteSpeed to pass all requests to the Python app via Passenger.
+# IMPORTANT: Replace YOUR_CPANEL_USER below with your actual cPanel username.
+# See CPANEL_DEPLOY.md for full instructions.
 
 PassengerEnabled On
 PassengerAppRoot /home/YOUR_CPANEL_USER/qmol_app

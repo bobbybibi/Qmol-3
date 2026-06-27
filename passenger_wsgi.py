@@ -21,14 +21,8 @@ try:
     from a2wsgi import ASGIMiddleware
     application = ASGIMiddleware(app)
 except ImportError:
-    # Fallback: use uvicorn's WSGI bridge if a2wsgi not installed
-    try:
-        from uvicorn.middleware.wsgi import WSGIMiddleware  # type: ignore
-        # This won't work (wrong direction), so raise a clear error
-        raise ImportError
-    except ImportError:
-        raise RuntimeError(
-            "Missing 'a2wsgi' package. Install it:\n"
-            "  pip install a2wsgi\n"
-            "Or in cPanel Python App → 'Run pip install' → a2wsgi"
-        )
+    raise RuntimeError(
+        "Missing 'a2wsgi' package. Install it:\n"
+        "  pip install a2wsgi\n"
+        "Or in cPanel Python App → 'Run pip install' → a2wsgi"
+    )
