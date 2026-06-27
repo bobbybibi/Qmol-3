@@ -1201,17 +1201,21 @@ class CheckoutSessionIn(BaseModel):
 @app.post("/checkout-session")
 def create_checkout_session(body: CheckoutSessionIn, request: Request):
     """Create a Stripe Checkout session (subscription) and return the redirect URL."""
+    import logging as _logging
+    _clog = _logging.getLogger("qmol.checkout")
     _rl(_client_ip(request), limit=10, window=60.0)
     try:
         from stripe_checkout import create_session
         result = create_session(body.price_id, coupon_code=body.coupon_code)
         return {"url": result["url"]}
     except KeyError:
+        _clog.warning("checkout-session: missing Stripe env var")
         raise HTTPException(status_code=503,
                             detail="Payment service not configured. Contact support.")
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:  # noqa: BLE001
+        _clog.exception("checkout-session unexpected error")
         raise HTTPException(status_code=503,
                             detail="Payment service temporarily unavailable. Try again shortly.")
 
@@ -1221,6 +1225,8 @@ def create_checkout_session(body: CheckoutSessionIn, request: Request):
 @app.post("/stripe-webhook", include_in_schema=False)
 async def stripe_webhook_endpoint(request: Request):
     """Stripe sends checkout + subscription lifecycle events here."""
+    import logging as _logging
+    _wlog = _logging.getLogger("qmol.stripe_webhook")
     raw = await request.body()
     from stripe_webhook import handler as _stripe_handler
 
@@ -1229,12 +1235,23 @@ async def stripe_webhook_endpoint(request: Request):
             self.headers = hdrs
             self.body = body
 
-    resp = _stripe_handler(_FauxRequest(dict(request.headers), raw))
-    return Response(
-        content=resp["body"],
-        status_code=resp["statusCode"],
-        media_type="application/json",
-    )
+    try:
+        resp = _stripe_handler(_FauxRequest(dict(request.headers), raw))
+        status = resp.get("statusCode", 200)
+        # Never forward internal error bodies — strip any exception text
+        if status >= 500:
+            _wlog.error("stripe_webhook internal error: %s", resp.get("body", ""))
+            body = '{"received": false, "error": "internal error"}'
+        else:
+            body = resp.get("body", '{"received": true}')
+        return Response(content=body, status_code=status, media_type="application/json")
+    except Exception:  # noqa: BLE001
+        _wlog.exception("stripe_webhook unhandled exception")
+        return Response(
+            content='{"received": false}',
+            status_code=400,
+            media_type="application/json",
+        )
 
 
 # ── Additional HTML page routes ───────────────────────────────────────────────
