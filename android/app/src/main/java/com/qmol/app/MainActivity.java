@@ -16,7 +16,7 @@ import android.widget.RelativeLayout;
 
 public class MainActivity extends Activity {
 
-    private static final String HOME_URL = "https://qua-22p1.onrender.com/app";
+    private static final String HOME_URL = "https://www.photon-bounce.com/qmol/app";
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -66,7 +66,7 @@ public class MainActivity extends Activity {
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
                 // Open external links (Stripe, HuggingFace, etc.) in the browser
-                if (!url.startsWith("https://qua-22p1.onrender.com")
+                if (!url.startsWith("https://www.photon-bounce.com/qmol")
                         && !url.startsWith("about:")
                         && !url.startsWith("javascript:")) {
                     startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));

@@ -12,7 +12,7 @@ from typing import Iterable, Sequence
 
 import requests
 
-DEFAULT_BASE = os.getenv("QMOL_API_URL", "https://qua-22p1.onrender.com")
+DEFAULT_BASE = os.getenv("QMOL_API_URL", "https://www.photon-bounce.com/qmol")
 
 
 class QmolError(Exception):

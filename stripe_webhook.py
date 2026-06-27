@@ -59,7 +59,7 @@ def deliver(email: str, tier_price_id: str) -> dict:
     info = keysdb.provision(email, tier)
     api_key = info.key
 
-    api_base = os.getenv("QMOL_API_BASE", "https://qua-22p1.onrender.com").rstrip("/")
+    api_base = os.getenv("QMOL_API_BASE", "https://www.photon-bounce.com/qmol").rstrip("/")
     body = (
         f"Thanks for buying Q-Mol ({tier} tier)!\n\n"
         f"Downloads:\n"

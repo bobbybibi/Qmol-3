@@ -1183,7 +1183,7 @@ def make_api_key(email: str, secret: str) -> str:
 @app.get("/public-config", include_in_schema=False)
 def public_config():
     """Returns non-secret runtime config so frontend pages stay DRY."""
-    api_base = os.getenv("QMOL_API_BASE", "https://qua-22p1.onrender.com").rstrip("/")
+    api_base = os.getenv("QMOL_API_BASE", "https://www.photon-bounce.com/qmol").rstrip("/")
     return {
         "stripe_publishable_key": os.getenv("STRIPE_PUBLISHABLE_KEY", ""),
         "api_base": api_base,

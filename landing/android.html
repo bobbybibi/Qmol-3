@@ -143,7 +143,7 @@ cd Qmol-3/android
   // Dynamically check if the APK file exists on the server
   (async () => {
     try {
-      const API = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+      const API = (window.QMOL_API || "https://www.photon-bounce.com/qmol").replace(/\/$/, "");
       const r = await fetch(API + "/public-config");
       if (r.ok) {
         const cfg = await r.json();

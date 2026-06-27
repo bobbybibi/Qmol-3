@@ -1,15 +1,15 @@
 """Stripe checkout — creates a hosted subscription session.
 
-Environment variables (set these in Render / .env):
+Environment variables (set these in cPanel / .env):
   STRIPE_SECRET_KEY           sk_live_...  (required)
   STRIPE_PUBLISHABLE_KEY      pk_live_...  (required; served to frontend via /public-config)
   STRIPE_PRICE_RESEARCH       price_xxx    (monthly $49 Research plan)
   STRIPE_PRICE_COMMERCIAL     price_xxx    (monthly $299 Commercial plan)
   STRIPE_PRICE_REDISTRIBUTION price_xxx    (monthly $999 Redistribution plan)
   STRIPE_WEBHOOK_SECRET       whsec_xxx    (for /stripe-webhook signature verification)
-  QMOL_API_BASE               https://qua-22p1.onrender.com
-  SUCCESS_URL                 https://qua-22p1.onrender.com/checkout.html?success=1
-  CANCEL_URL                  https://qua-22p1.onrender.com/checkout.html
+  QMOL_API_BASE               https://www.photon-bounce.com/qmol
+  SUCCESS_URL                 https://www.photon-bounce.com/qmol/checkout.html?success=1
+  CANCEL_URL                  https://www.photon-bounce.com/qmol/checkout.html
 
 To test locally:
     pip install stripe
@@ -31,7 +31,7 @@ PRICE_LOOKUP = {
     "price_redistribution": "STRIPE_PRICE_REDISTRIBUTION",
 }
 
-_API_BASE = os.getenv("QMOL_API_BASE", "https://qua-22p1.onrender.com").rstrip("/")
+_API_BASE = os.getenv("QMOL_API_BASE", "https://www.photon-bounce.com/qmol").rstrip("/")
 
 
 def create_session(price_tag: str, coupon_code: str | None = None) -> dict:

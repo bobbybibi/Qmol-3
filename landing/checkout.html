@@ -83,7 +83,7 @@
 <script>
 (async () => {
   // Load non-secret config from the API
-  const API = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+  const API = (window.QMOL_API || "https://www.photon-bounce.com/qmol").replace(/\/$/, "");
   let cfg = { stripe_publishable_key: "", api_base: API };
   try {
     const r = await fetch(API + "/public-config");

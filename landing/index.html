@@ -72,7 +72,7 @@
     <pre id="signupResult" style="display:none;background:#0b1020;padding:10px;border-radius:8px;margin-top:10px;overflow:auto;"></pre>
   </form>
   <script>
-    const API_BASE = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+    const API_BASE = (window.QMOL_API || "https://www.photon-bounce.com/qmol").replace(/\/$/, "");
     document.getElementById("signupForm").addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = document.getElementById("signupEmail").value;
@@ -125,7 +125,7 @@ print(df.head())</code></pre>
   // Resolve contact email from API config so it stays in sync
   (async () => {
     try {
-      const API_BASE = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+      const API_BASE = (window.QMOL_API || "https://www.photon-bounce.com/qmol").replace(/\/$/, "");
       const r = await fetch(API_BASE + "/public-config");
       if (r.ok) {
         const cfg = await r.json();
