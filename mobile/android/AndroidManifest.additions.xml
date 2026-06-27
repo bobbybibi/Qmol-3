@@ -1,0 +1,21 @@
+<!--
+  Apply these to the Flutter-generated android/app/src/main/AndroidManifest.xml
+  (flutter create writes the base file; add the lines below).
+
+  1) INTERNET permission (required for release; debug adds it automatically).
+     in_app_purchase adds com.android.vending.BILLING itself via manifest merge.
+  2) A <queries> block so url_launcher can open the privacy/terms pages.
+-->
+
+<!-- inside <manifest>, above <application> -->
+<uses-permission android:name="android.permission.INTERNET" />
+
+<queries>
+    <intent>
+        <action android:name="android.intent.action.VIEW" />
+        <data android:scheme="https" />
+    </intent>
+</queries>
+
+<!-- on the <application> element, set the visible name -->
+<!-- android:label="Q-Mol" -->

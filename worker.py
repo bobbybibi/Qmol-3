@@ -155,7 +155,7 @@ def publish_snapshot(conn) -> None:
     # Daily metrics snapshot for admin dashboard trend chart
     try:
         from src import metrics as _metrics
-        snap = _metrics.snapshot(stats.get("rows", 0))
+        snap = _metrics.snapshot(stats["row_count"])
         log.info("metrics snapshot: %s", snap)
     except Exception as e:  # noqa: BLE001
         log.warning("metrics snapshot failed: %s", e)

@@ -1,0 +1,44 @@
+name: deploy-microsite
+
+# Publishes microsite/ to the FTP server's /qmol folder. Runs from GitHub's
+# runners (which can reach the FTP host) — the dev sandbox cannot. The FTP
+# password is read from the repo secret FTP_PASSWORD; it is never stored in git.
+#
+# SETUP (once): repo → Settings → Secrets and variables → Actions → New secret
+#   name: FTP_PASSWORD   value: <your ftp password>
+# Optionally override FTP_SERVER / FTP_USERNAME as repo *variables* if they change.
+
+on:
+  # Deploy to production on merge to main, or on demand from any branch.
+  push:
+    branches: [main, master]
+    paths: ["microsite/**", ".github/workflows/deploy-microsite.yml"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip if FTP not configured
+        if: ${{ env.FTP_PASSWORD == '' }}
+        run: echo "FTP_PASSWORD secret not set — skipping deploy. Add it in Settings → Secrets and variables → Actions."
+      - name: Deploy microsite to FTP /qmol
+        if: ${{ env.FTP_PASSWORD != '' }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ vars.FTP_SERVER || 'ftp.photon-bounce.com' }}
+          username: ${{ vars.FTP_USERNAME || 'photonb' }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          # Secure by default. If your host only supports plain FTP, set the repo
+          # variable FTP_PROTOCOL=ftp (or ftps-legacy for older TLS).
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          local-dir: ./microsite/
+          server-dir: /qmol/
+          # Safety: don't nuke unrelated files; only sync the microsite.
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/README.md
