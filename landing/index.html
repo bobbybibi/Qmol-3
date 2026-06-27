@@ -53,13 +53,15 @@
   <h2 id="buy">Pricing</h2>
   <table>
     <tr><th>Tier</th><th>Price</th><th>What's included</th></tr>
-    <tr><td>Sample</td><td>Free</td><td>First 100 molecules, CSV</td></tr>
-    <tr><td>Research (CC BY-NC)</td><td>$29</td><td>Full current dataset, all updates</td></tr>
-    <tr><td>Commercial</td><td>$299</td><td>Full dataset + commercial license</td></tr>
-    <tr><td>Enterprise / custom</td><td>Contact</td><td>Custom compute, private API, SLA</td></tr>
+    <tr><td>Free</td><td>Free</td><td>500 SMILES/month via API, descriptor endpoints</td></tr>
+    <tr><td>Research</td><td>$49/month</td><td>10k SMILES/month, all endpoints, CC BY-NC 4.0, data exports</td></tr>
+    <tr><td>Commercial</td><td>$299/month</td><td>100k SMILES/month, commercial license, teams, webhooks</td></tr>
+    <tr><td>Redistribution</td><td>$999/month</td><td>1M SMILES/month, bundle in your product</td></tr>
+    <tr><td>Enterprise</td><td>Contact us</td><td>Custom compute, SLA, dedicated Slack, SSO</td></tr>
   </table>
   <p style="margin-top:14px;">
-    <a class="cta" href="https://gumroad.com/l/YOUR-PRODUCT" target="_blank" rel="noopener">Buy on Gumroad</a>
+    <a class="cta" href="checkout.html">Subscribe with Stripe →</a>
+    <a class="cta secondary" id="contact-link" href="mailto:hi@qmol.app">Contact for enterprise</a>
   </p>
 
   <h2 id="sample">Free sample + free API key</h2>
@@ -104,8 +106,27 @@ print(df.head())</code></pre>
 
   <footer>
     Q-Mol &middot; Source structures: PubChem (public domain) &middot; Descriptors computed with RDKit.<br>
-    Questions: <a href="mailto:you@example.com">you@example.com</a>
+    Questions: <a href="#" id="footer-email">hi@qmol.app</a>
   </footer>
 </div>
+<script>
+  // Resolve contact email from API config so it stays in sync
+  (async () => {
+    try {
+      const API_BASE = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+      const r = await fetch(API_BASE + "/public-config");
+      if (r.ok) {
+        const cfg = await r.json();
+        if (cfg.contact_email) {
+          const el = document.getElementById("footer-email");
+          el.href = "mailto:" + cfg.contact_email;
+          el.textContent = cfg.contact_email;
+          const cLink = document.getElementById("contact-link");
+          if (cLink) cLink.href = "mailto:" + cfg.contact_email;
+        }
+      }
+    } catch (_) {}
+  })();
+</script>
 </body>
 </html>

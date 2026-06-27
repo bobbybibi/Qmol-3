@@ -1,19 +1,20 @@
-"""Minimal serverless Stripe checkout — deploy to Vercel / Cloudflare Workers / AWS Lambda.
+"""Stripe checkout — creates a hosted subscription session.
 
-Environment variables:
-  STRIPE_SECRET_KEY        sk_live_...
-  STRIPE_PRICE_RESEARCH    price_xxx (created in Stripe dashboard)
-  STRIPE_PRICE_COMMERCIAL  price_xxx
-  STRIPE_PRICE_REDISTRIBUTION price_xxx
-  SUCCESS_URL              https://yourdomain/success
-  CANCEL_URL               https://yourdomain/checkout.html
-
-Example Vercel handler (api/create-checkout.py):
-    from stripe_checkout import handler as vercel_handler
+Environment variables (set these in Render / .env):
+  STRIPE_SECRET_KEY           sk_live_...  (required)
+  STRIPE_PUBLISHABLE_KEY      pk_live_...  (required; served to frontend via /public-config)
+  STRIPE_PRICE_RESEARCH       price_xxx    (monthly $49 Research plan)
+  STRIPE_PRICE_COMMERCIAL     price_xxx    (monthly $299 Commercial plan)
+  STRIPE_PRICE_REDISTRIBUTION price_xxx    (monthly $999 Redistribution plan)
+  STRIPE_WEBHOOK_SECRET       whsec_xxx    (for /stripe-webhook signature verification)
+  QMOL_API_BASE               https://qua-22p1.onrender.com
+  SUCCESS_URL                 https://qua-22p1.onrender.com/checkout.html?success=1
+  CANCEL_URL                  https://qua-22p1.onrender.com/checkout.html
 
 To test locally:
     pip install stripe
-    STRIPE_SECRET_KEY=sk_test_xxx python -c "from stripe_checkout import create_session; print(create_session('price_research'))"
+    STRIPE_SECRET_KEY=sk_test_xxx STRIPE_PRICE_RESEARCH=price_xxx \\
+        python -c "from stripe_checkout import create_session; print(create_session('price_research'))"
 """
 from __future__ import annotations
 import json
@@ -30,42 +31,33 @@ PRICE_LOOKUP = {
     "price_redistribution": "STRIPE_PRICE_REDISTRIBUTION",
 }
 
+_API_BASE = os.getenv("QMOL_API_BASE", "https://qua-22p1.onrender.com").rstrip("/")
 
-def create_session(price_tag: str) -> dict:
+
+def create_session(price_tag: str, coupon_code: str | None = None) -> dict:
+    """Create a Stripe Checkout session in subscription mode and return {url}."""
     if stripe is None:
-        raise RuntimeError("stripe package not installed")
+        raise RuntimeError("stripe package not installed — run: pip install stripe")
     stripe.api_key = os.environ["STRIPE_SECRET_KEY"]
     env_var = PRICE_LOOKUP.get(price_tag)
     if not env_var:
-        raise ValueError(f"unknown price: {price_tag}")
+        raise ValueError(f"unknown price tag: {price_tag!r}. "
+                         f"Expected one of: {list(PRICE_LOOKUP)}")
     price_id = os.environ[env_var]
 
-    session = stripe.checkout.Session.create(
-        mode="payment",
+    kwargs: dict = dict(
+        mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
         success_url=os.environ.get(
             "SUCCESS_URL",
-            "https://example.com/success?session_id={CHECKOUT_SESSION_ID}",
+            f"{_API_BASE}/checkout.html?success=1&session_id={{CHECKOUT_SESSION_ID}}",
         ),
-        cancel_url=os.environ.get("CANCEL_URL", "https://example.com/checkout.html"),
+        cancel_url=os.environ.get("CANCEL_URL", f"{_API_BASE}/checkout.html"),
         automatic_tax={"enabled": True},
+        billing_address_collection="auto",
     )
+    if coupon_code:
+        kwargs["discounts"] = [{"coupon": coupon_code}]
+
+    session = stripe.checkout.Session.create(**kwargs)
     return {"sessionId": session.id, "url": session.url}
-
-
-def handler(request):
-    """Vercel/Next.js-style handler. Adapt for your FaaS."""
-    try:
-        body = request.json() if callable(getattr(request, "json", None)) else json.loads(request.body)
-    except Exception:
-        body = {}
-    price_tag = body.get("price_id", "price_research")
-    try:
-        out = create_session(price_tag)
-        return {"statusCode": 200, "body": json.dumps(out),
-                "headers": {"content-type": "application/json",
-                            "access-control-allow-origin": "*"}}
-    except Exception as e:  # noqa: BLE001
-        return {"statusCode": 400, "body": json.dumps({"error": str(e)}),
-                "headers": {"content-type": "application/json",
-                            "access-control-allow-origin": "*"}}

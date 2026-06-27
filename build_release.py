@@ -13,6 +13,7 @@ Upload qmol_full.parquet + qmol_full.csv to Gumroad as the paid product.
 Upload qmol_sample_100.csv as the free sample / lead magnet.
 """
 from __future__ import annotations
+import os
 from pathlib import Path
 import shutil
 
@@ -61,7 +62,7 @@ def main() -> None:
         "license to use the dataset in commercial products (ML training, "
         "screening pipelines, internal R&D). Redistribution of the raw dataset "
         "is not permitted.\n\n"
-        "Contact: <your-email@example.com> for enterprise/redistribution terms.\n"
+        "Contact: <" + os.getenv("QMOL_CONTACT_EMAIL", "hi@qmol.app") + "> for enterprise/redistribution terms.\n"
     )
 
     pq_mb = pq.stat().st_size / 1024 / 1024

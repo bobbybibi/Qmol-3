@@ -2,55 +2,101 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Q-Mol — Checkout</title>
+<title>Q-Mol — Subscribe</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<script src="https://js.stripe.com/v3/"></script>
 <style>
   body { font: 16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;
          background:#0b1020; color:#e7ecf3; margin:0; }
-  .wrap { max-width: 520px; margin: 60px auto; padding: 28px; background:#121a2e;
+  .wrap { max-width: 560px; margin: 60px auto; padding: 28px; background:#121a2e;
           border-radius: 14px; border: 1px solid #22314e; }
-  h1 { margin: 0 0 6px; font-size: 26px; }
-  p { color: #8a95a8; }
+  h1 { margin: 0 0 4px; font-size: 26px; }
+  .sub-head { color: #8a95a8; margin: 0 0 20px; font-size: 15px; }
   .tier { display:flex; justify-content:space-between; align-items:center;
-          padding:14px 16px; border:1px solid #22314e; border-radius:10px; margin-bottom:10px; cursor:pointer; }
+          padding:14px 16px; border:1px solid #22314e; border-radius:10px;
+          margin-bottom:10px; cursor:pointer; transition: border-color .15s; }
+  .tier:hover { border-color:#4af; }
   .tier.selected { border-color:#6cf; background:#0f1a30; }
-  button { width:100%; padding:14px; background:#6cf; color:#001; border:0;
-           border-radius:10px; font-weight:700; font-size:16px; cursor:pointer; }
-  button:disabled { opacity:.5; cursor:wait; }
-  small { color:#8a95a8; }
+  .tier .name { font-weight:700; }
+  .tier .desc { color:#8a95a8; font-size:13px; margin-top:2px; }
+  .tier .price { font-size:18px; font-weight:700; color:#6cf; white-space:nowrap; padding-left:12px; }
+  .coupon-row { display:flex; gap:8px; margin:14px 0 4px; }
+  .coupon-row input { flex:1; padding:10px; border:1px solid #22314e; border-radius:8px;
+                      background:#0b1020; color:#e7ecf3; font-size:14px; }
+  .coupon-row button { padding:10px 14px; background:#22314e; color:#e7ecf3;
+                       border:0; border-radius:8px; cursor:pointer; font-size:14px; }
+  #coupon-msg { font-size:13px; min-height:18px; margin-bottom:10px; }
+  #coupon-msg.ok { color:#4cf; }
+  #coupon-msg.err { color:#f66; }
+  .pay-btn { width:100%; padding:15px; background:#6cf; color:#001; border:0;
+             border-radius:10px; font-weight:700; font-size:16px; cursor:pointer;
+             margin-top:10px; transition: opacity .15s; }
+  .pay-btn:disabled { opacity:.45; cursor:wait; }
+  .note { color:#8a95a8; font-size:13px; margin-top:14px; }
+  .success-box { display:none; background:#0f2a1a; border:1px solid #2a6; padding:18px;
+                 border-radius:10px; margin-top:14px; color:#6cf; }
+  a { color:#6cf; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Q-Mol — Checkout</h1>
-  <p>Pay once. Receive a signed download link by email. Updates included.</p>
+  <h1>Q-Mol Subscription</h1>
+  <p class="sub-head">Monthly API access + dataset downloads. Cancel any time.</p>
 
   <div class="tier selected" data-price="price_research">
-    <div><strong>Research</strong><br><small>CC BY-NC 4.0 — academic / non-commercial</small></div>
-    <div>$29</div>
+    <div>
+      <div class="name">Research</div>
+      <div class="desc">10k SMILES/month · CC BY-NC 4.0 · All descriptor endpoints</div>
+    </div>
+    <div class="price">$49/mo</div>
   </div>
   <div class="tier" data-price="price_commercial">
-    <div><strong>Commercial</strong><br><small>Per-team license, ML training OK</small></div>
-    <div>$299</div>
+    <div>
+      <div class="name">Commercial</div>
+      <div class="desc">100k SMILES/month · Commercial license · Teams + webhooks</div>
+    </div>
+    <div class="price">$299/mo</div>
   </div>
   <div class="tier" data-price="price_redistribution">
-    <div><strong>Redistribution</strong><br><small>Resell / bundle inside your product</small></div>
-    <div>$999</div>
+    <div>
+      <div class="name">Redistribution</div>
+      <div class="desc">1M SMILES/month · Bundle into your product</div>
+    </div>
+    <div class="price">$999/mo</div>
   </div>
 
-  <p style="margin-top:22px;"><button id="pay">Checkout with Stripe →</button></p>
-  <p><small>Powered by Stripe. Replace the <code>STRIPE_PUBLISHABLE_KEY</code> and
-    <code>CHECKOUT_ENDPOINT</code> placeholders below with your own before going live.</small></p>
+  <div class="coupon-row">
+    <input id="coupon" type="text" placeholder="Coupon code (optional)" autocomplete="off" />
+    <button id="apply-coupon">Apply</button>
+  </div>
+  <div id="coupon-msg"></div>
+
+  <button class="pay-btn" id="pay">Subscribe with Stripe →</button>
+  <p class="note">Powered by Stripe. Receipts + API key delivered by email immediately.</p>
+
+  <div class="success-box" id="success-box">
+    <strong>🎉 Subscription active!</strong><br>
+    Check your email for your API key and download links.<br>
+    <a href="portal.html">Open customer portal →</a>
+  </div>
 </div>
 
 <script>
-  const STRIPE_PUBLISHABLE_KEY = "pk_live_REPLACE_ME";
-  const CHECKOUT_ENDPOINT = "https://YOUR-SERVERLESS/create-checkout";
+(async () => {
+  // Load non-secret config from the API
+  const API = (window.QMOL_API || "https://qua-22p1.onrender.com").replace(/\/$/, "");
+  let cfg = { stripe_publishable_key: "", api_base: API };
+  try {
+    const r = await fetch(API + "/public-config");
+    if (r.ok) cfg = await r.json();
+  } catch (_) {}
 
-  const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+  // Check for success redirect from Stripe
+  if (new URLSearchParams(location.search).get("success") === "1") {
+    document.getElementById("success-box").style.display = "block";
+  }
+
+  // Plan selection
   let selectedPrice = "price_research";
-
   document.querySelectorAll(".tier").forEach(el => {
     el.addEventListener("click", () => {
       document.querySelectorAll(".tier").forEach(t => t.classList.remove("selected"));
@@ -59,21 +105,58 @@
     });
   });
 
-  document.getElementById("pay").addEventListener("click", async (e) => {
-    e.target.disabled = true;
+  // Coupon
+  let appliedCoupon = null;
+  document.getElementById("apply-coupon").addEventListener("click", async () => {
+    const code = document.getElementById("coupon").value.trim();
+    const msg = document.getElementById("coupon-msg");
+    if (!code) { msg.textContent = ""; return; }
     try {
-      const r = await fetch(CHECKOUT_ENDPOINT, {
+      const tier = selectedPrice.replace("price_", "");
+      const r = await fetch(cfg.api_base + "/coupon/check", {
         method: "POST",
         headers: {"content-type": "application/json"},
-        body: JSON.stringify({ price_id: selectedPrice }),
+        body: JSON.stringify({ code, tier }),
       });
-      const { sessionId } = await r.json();
-      await stripe.redirectToCheckout({ sessionId });
+      const j = await r.json();
+      if (!r.ok) { msg.className = "err"; msg.textContent = j.detail || "Invalid coupon"; return; }
+      appliedCoupon = code;
+      const pct = j.discount_percent || 0;
+      msg.className = "ok";
+      msg.textContent = `✓ Coupon applied — ${pct}% off`;
     } catch (err) {
-      alert("Checkout error: " + err.message);
-      e.target.disabled = false;
+      document.getElementById("coupon-msg").textContent = "Error: " + err.message;
     }
   });
+
+  // Checkout
+  document.getElementById("pay").addEventListener("click", async (e) => {
+    e.target.disabled = true;
+    e.target.textContent = "Redirecting to Stripe…";
+    try {
+      const r = await fetch(cfg.api_base + "/checkout-session", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({
+          price_id: selectedPrice,
+          coupon_code: appliedCoupon || undefined,
+        }),
+      });
+      const j = await r.json();
+      if (!r.ok) {
+        alert("Checkout error: " + (j.detail || r.statusText));
+        e.target.disabled = false;
+        e.target.textContent = "Subscribe with Stripe →";
+        return;
+      }
+      window.location.href = j.url;
+    } catch (err) {
+      alert("Network error: " + err.message);
+      e.target.disabled = false;
+      e.target.textContent = "Subscribe with Stripe →";
+    }
+  });
+})();
 </script>
 </body>
 </html>

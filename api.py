@@ -1134,7 +1134,7 @@ def openapi_static():
 @app.post("/coupon/check")
 def coupon_check(body: CouponCheckIn):
     """Used by checkout.html before creating a Stripe session."""
-    _PRICE_CENTS = {"research": 2900, "commercial": 29900,
+    _PRICE_CENTS = {"research": 4900, "commercial": 29900,
                     "redistribution": 99900, "enterprise": 500000}
     base = _PRICE_CENTS.get(body.tier, 0)
     if base == 0:
@@ -1176,3 +1176,95 @@ def make_api_key(email: str, secret: str) -> str:
     """Deterministic API key generator used by the Stripe webhook delivery path."""
     h = hashlib.sha256(f"{email}|{secret}".encode()).hexdigest()
     return f"qmol_{h[:32]}"
+
+
+# ── Public config (non-secret; safe to expose to the browser) ────────────────
+
+@app.get("/public-config", include_in_schema=False)
+def public_config():
+    """Returns non-secret runtime config so frontend pages stay DRY."""
+    api_base = os.getenv("QMOL_API_BASE", "https://qua-22p1.onrender.com").rstrip("/")
+    return {
+        "stripe_publishable_key": os.getenv("STRIPE_PUBLISHABLE_KEY", ""),
+        "api_base": api_base,
+        "contact_email": os.getenv("QMOL_CONTACT_EMAIL", "hi@qmol.app"),
+    }
+
+
+# ── Stripe checkout session ───────────────────────────────────────────────────
+
+class CheckoutSessionIn(BaseModel):
+    price_id: str  # "price_research" | "price_commercial" | "price_redistribution"
+    coupon_code: str | None = None
+
+
+@app.post("/checkout-session")
+def create_checkout_session(body: CheckoutSessionIn, request: Request):
+    """Create a Stripe Checkout session (subscription) and return the redirect URL."""
+    _rl(_client_ip(request), limit=10, window=60.0)
+    try:
+        from stripe_checkout import create_session
+        result = create_session(body.price_id, coupon_code=body.coupon_code)
+        return {"url": result["url"]}
+    except KeyError as exc:
+        raise HTTPException(status_code=400,
+                            detail=f"Missing server config: {exc}. "
+                                   f"Set STRIPE_SECRET_KEY and STRIPE_PRICE_* env vars.")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ── Stripe webhook ─────────────────────────────────────────────────────────────
+
+@app.post("/stripe-webhook", include_in_schema=False)
+async def stripe_webhook_endpoint(request: Request):
+    """Stripe sends checkout + subscription lifecycle events here."""
+    raw = await request.body()
+    from stripe_webhook import handler as _stripe_handler
+
+    class _FauxRequest:
+        def __init__(self, hdrs, body):
+            self.headers = hdrs
+            self.body = body
+
+    resp = _stripe_handler(_FauxRequest(dict(request.headers), raw))
+    return Response(
+        content=resp["body"],
+        status_code=resp["statusCode"],
+        media_type="application/json",
+    )
+
+
+# ── Additional HTML page routes ───────────────────────────────────────────────
+
+def _html_route(filename: str):
+    from fastapi.responses import FileResponse
+    p = Path(__file__).parent / "landing" / filename
+    if p.exists():
+        return FileResponse(p, media_type="text/html")
+    raise HTTPException(status_code=404, detail="not found")
+
+
+@app.get("/checkout.html", include_in_schema=False)
+def checkout_page():
+    return _html_route("checkout.html")
+
+
+@app.get("/portal.html", include_in_schema=False)
+def portal_page():
+    return _html_route("portal.html")
+
+
+@app.get("/stats.html", include_in_schema=False)
+def stats_page():
+    return _html_route("stats.html")
+
+
+@app.get("/docs.html", include_in_schema=False)
+def docs_page():
+    return _html_route("docs.html")
+
+
+@app.get("/admin.html", include_in_schema=False)
+def admin_html_page():
+    return _html_route("admin.html")
