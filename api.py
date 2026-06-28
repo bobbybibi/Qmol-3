@@ -543,16 +543,6 @@ def predict_endpoint(body: PredictIn, x_api_key: str | None = Header(default=Non
     return {"results": results, "quota_charged": charge}
 
 
-    if not info:
-        raise HTTPException(status_code=401, detail="Invalid API key")
-    return {
-        "tier": info.tier,
-        "used_this_month": keysdb.month_usage(x_api_key),
-        "monthly_quota": info.monthly_quota,
-        "active": info.active,
-    }
-
-
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -1327,13 +1317,25 @@ async def stripe_webhook_endpoint(request: Request):
     try:
         resp = _stripe_handler(_FauxRequest(dict(request.headers), raw))
         status = resp.get("statusCode", 200)
-        # Never forward internal error bodies — strip any exception text
+        safe_body = {"received": status < 400}
         if status >= 500:
             _wlog.error("stripe_webhook internal error: %s", resp.get("body", ""))
-            body = '{"received": false, "error": "internal error"}'
+            safe_body["error"] = "internal error"
         else:
-            body = resp.get("body", '{"received": true}')
-        return Response(content=body, status_code=status, media_type="application/json")
+            try:
+                parsed = json.loads(resp.get("body", "{}"))
+            except Exception:  # noqa: BLE001
+                parsed = {}
+            if isinstance(parsed, dict):
+                if "received" in parsed:
+                    safe_body["received"] = bool(parsed["received"])
+                if status >= 400 and parsed.get("error"):
+                    safe_body["error"] = "request rejected"
+        return Response(
+            content=json.dumps(safe_body),
+            status_code=status,
+            media_type="application/json",
+        )
     except Exception:  # noqa: BLE001
         _wlog.exception("stripe_webhook unhandled exception")
         return Response(
