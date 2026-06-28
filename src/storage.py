@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS molecules (
 CREATE INDEX IF NOT EXISTS idx_success ON molecules(success);
 CREATE INDEX IF NOT EXISTS idx_inchikey ON molecules(inchikey);
 CREATE INDEX IF NOT EXISTS idx_scaffold ON molecules(murcko_scaffold);
+"""
+
+MOLECULE_INDEXES = """
 CREATE INDEX IF NOT EXISTS idx_molecules_source ON molecules(source_name, source_record_id);
 CREATE INDEX IF NOT EXISTS idx_molecules_smiles ON molecules(smiles);
 """
@@ -176,6 +179,7 @@ def connect(db_path: Path) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.executescript(MOLECULES_SCHEMA)
     _ensure_columns(conn, "molecules", MOLECULE_EXTRA_COLUMNS)
+    conn.executescript(MOLECULE_INDEXES)
     conn.executescript(SOURCE_MAPPINGS_SCHEMA)
     conn.executescript(RAW_SNAPSHOTS_SCHEMA)
     conn.executescript(INGESTION_SOURCES_SCHEMA)
