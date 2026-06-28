@@ -35,7 +35,7 @@ ADMIN_TOKEN = os.getenv("QMOL_ADMIN_TOKEN", "")
 
 app = FastAPI(
     title="Q-Mol API",
-    version="1.1.0",
+    version="1.2.0",
     description=(
         "Molecular descriptor, similarity search, drug-likeness screen, "
         "and ADMET prediction API.\n\n"
