@@ -27,7 +27,7 @@ from src import (compute, storage, keys as keysdb, ratelimit, similarity,
                  coupons, magic_link, conformers, reactions, standardize,
                  webhooks_out, teams, prom, scaffolds, audit, rotate as rotatelib,
                  invoices, uploads, substructure, exporters,
-                 cache as result_cache, diversity, sdf_out,
+                 cache as result_cache, diversity, sdf_out, ingest,
                  parquet_out, usage_stats, scopes, retro, plans)
 import config
 
@@ -403,6 +403,95 @@ def admin_history(x_admin_token: str | None = Header(default=None),
                   days: int = 30):
     _require_admin(x_admin_token)
     return {"history": metrics.history(limit=days)}
+
+
+@app.get("/admin/ingestion/sources")
+def admin_ingestion_sources(x_admin_token: str | None = Header(default=None)):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        storage.ensure_ingestion_sources(conn, config.APPROVED_SOURCES)
+        sources = storage.list_ingestion_sources(conn)
+    finally:
+        conn.close()
+    return {"sources": sources, "catalog": ingest.source_catalog()}
+
+
+@app.get("/admin/ingestion/status")
+def admin_ingestion_status(x_admin_token: str | None = Header(default=None)):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        storage.ensure_ingestion_sources(conn, config.APPROVED_SOURCES)
+        sources = storage.list_ingestion_sources(conn)
+        runs = storage.list_ingestion_runs(conn, limit=10)
+        rows = storage.row_count(conn)
+    finally:
+        conn.close()
+    return {"public_rows": rows, "sources": sources, "recent_runs": runs}
+
+
+@app.get("/admin/ingestion/runs")
+def admin_ingestion_runs(x_admin_token: str | None = Header(default=None),
+                         source_name: str | None = None,
+                         limit: int = 50):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        runs = storage.list_ingestion_runs(conn, source_name=source_name, limit=limit)
+    finally:
+        conn.close()
+    return {"runs": runs}
+
+
+@app.get("/admin/ingestion/molecules")
+def admin_ingestion_molecules(x_admin_token: str | None = Header(default=None),
+                              source_name: str | None = None,
+                              limit: int = 100,
+                              success_only: bool = False):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        molecules = storage.list_molecules(
+            conn, source_name=source_name, limit=limit, success_only=success_only
+        )
+    finally:
+        conn.close()
+    return {"molecules": molecules}
+
+
+@app.get("/admin/ingestion/raw")
+def admin_ingestion_raw(x_admin_token: str | None = Header(default=None),
+                        source_name: str | None = None,
+                        limit: int = 50):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        snapshots = storage.list_raw_snapshots(conn, source_name=source_name, limit=limit)
+    finally:
+        conn.close()
+    return {"snapshots": snapshots}
+
+
+@app.get("/admin/ingestion/export.csv")
+def admin_ingestion_export_csv(x_admin_token: str | None = Header(default=None),
+                               source_name: str | None = None,
+                               limit: int = 500,
+                               success_only: bool = False):
+    _require_admin(x_admin_token)
+    conn = storage.connect(config.DB_PATH)
+    try:
+        rows = storage.list_molecules(
+            conn, source_name=source_name, limit=limit, success_only=success_only
+        )
+    finally:
+        conn.close()
+    csv_text = exporters.to_csv(rows)
+    return PlainTextResponse(
+        csv_text,
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="harvest.csv"'},
+    )
 
 
 @app.get("/usage")

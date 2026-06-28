@@ -419,3 +419,12 @@
 {"ts": "2026-04-23T06:57:56Z", "api_key": "qmol_486cc3b\u2026", "ip": "testclient", "method": "POST", "path": "/scaffolds", "status": 402, "ms": 9, "n_smiles": 0}
 {"ts": "2026-04-23T06:57:57Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/metrics", "status": 200, "ms": 56, "n_smiles": 0}
 {"ts": "2026-04-23T06:57:57Z", "api_key": "qmol_cbb2ebc\u2026", "ip": "testclient", "method": "POST", "path": "/scaffolds", "status": 200, "ms": 46, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": "qmol_57322cf\u2026", "ip": "testclient", "method": "POST", "path": "/compute/premium", "status": 200, "ms": 7, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": "qmol_df73a59\u2026", "ip": "testclient", "method": "POST", "path": "/compute/premium", "status": 402, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": "qmol_795749a\u2026", "ip": "testclient", "method": "GET", "path": "/usage", "status": 200, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/health", "status": 200, "ms": 0, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/admin/ingestion/sources", "status": 200, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/admin/ingestion/status", "status": 200, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/admin/ingestion/molecules", "status": 200, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/admin/ingestion/raw", "status": 200, "ms": 1, "n_smiles": 0}
+{"ts": "2026-06-28T06:53:32Z", "api_key": null, "ip": "testclient", "method": "GET", "path": "/admin/ingestion/export.csv", "status": 200, "ms": 1, "n_smiles": 0}

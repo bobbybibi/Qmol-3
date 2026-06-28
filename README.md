@@ -14,6 +14,8 @@ Windows with zero babysitting.
 3. **Stores** results in SQLite + exports clean Parquet snapshots.
 4. **Publishes** snapshots to HuggingFace Datasets (gated for paid access)
    on a schedule (every N molecules or every N hours, whichever first).
+5. **Tracks provenance** for approved sources, raw ingestion snapshots,
+   normalization metadata, deduplication decisions, and internal harvest status.
 
 ## Monetization
 
@@ -48,6 +50,9 @@ schtasks /Create /TN "QMolWorker" /TR "c:\qua\qua\run_worker.bat" /SC ONLOGON /R
 | `HF_REPO_ID` | e.g. `yourname/q-mol-dataset` |
 | `HF_PRIVATE` | `true` for gated/paid dataset |
 | `PUBCHEM_START_CID` | starting PubChem Compound ID |
+| `PUBCHEM_SYNC_INTERVAL_MINUTES` | PubChem polling cadence |
+| `ACTIVE_INGEST_SOURCES` | comma-separated approved sources to sync |
+| `INGEST_POLL_SECONDS` | worker idle sleep between source checks |
 | `MAX_HEAVY_ATOMS` | skip molecules bigger than this |
 | `BASIS_SET` | `sto-3g` (fast) or `6-31g` (accurate) |
 | `PUBLISH_EVERY_N_MOLECULES` | snapshot trigger |
@@ -59,7 +64,19 @@ schtasks /Create /TN "QMolWorker" /TR "c:\qua\qua\run_worker.bat" /SC ONLOGON /R
 - `src/ingest.py` — PubChem fetcher
 - `src/compute.py` — PySCF + pyQPanda compute
 - `src/storage.py` — SQLite + Parquet
+- `src/storage.py` — SQLite + Parquet + harvest metadata/provenance
 - `src/publish.py` — HuggingFace uploader
+
+## Internal harvest endpoints
+
+Token-gated admin endpoints expose the ingestion pipeline:
+
+- `GET /admin/ingestion/sources`
+- `GET /admin/ingestion/status`
+- `GET /admin/ingestion/runs`
+- `GET /admin/ingestion/molecules`
+- `GET /admin/ingestion/raw`
+- `GET /admin/ingestion/export.csv`
 
 ## Upgrade paths
 
